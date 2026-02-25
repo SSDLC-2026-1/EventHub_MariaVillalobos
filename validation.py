@@ -20,12 +20,22 @@ from datetime import datetime
 from typing import Tuple, Dict
 
 
+# =============================
+# Regular Patterns
+# =============================
+
+
 CARD_DIGITS_RE = re.compile(r"^\d+$")  #digits only
 CVV_RE = re.compile(r"^\d{3,4}$")      #3 or 4 digits
 EXP_RE = re.compile(r"^(0[1-9]|1[0-2])\/\d{2}$")   #MM/YY format
 EMAIL_BASIC_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")    # basic email structure
 NAME_ALLOWED_RE = re.compile(r"^[A-Za-zÀ-ÖØ-öø-ÿ' -]+$")   # allowed name characters
 
+
+
+# =============================
+# Utility Functions
+# =============================
 
 def normalize_basic(value: str) -> str:
     """
@@ -48,6 +58,11 @@ def luhn_is_valid(number: str) -> bool:
 
     return total % 10 == 0
 
+
+
+# =============================
+# Field Validations
+# =============================
 
 def validate_card_number(card_number: str) -> Tuple[str, str]:
     card = normalize_basic(card_number)
@@ -129,6 +144,11 @@ def validate_name_on_card(name_on_card: str) -> Tuple[str, str]:
     return name, ""
 
 
+
+# =============================
+# Orchestrator Function
+# =============================
+
 def validate_payment_form(
     card_number: str,
     exp_date: str,
@@ -171,4 +191,212 @@ def validate_payment_form(
         errors["billing_email"] = err
     clean["billing_email"] = email_clean
 
+    return clean, errors
+
+
+# =============================
+# Registration Field Validations
+# =============================
+
+# Regex for full name: letters (including accented), spaces, apostrophes, hyphens
+FULL_NAME_RE = re.compile(r"^[A-Za-zÀ-ÖØ-öø-ÿ' -]+$")
+# Regex for phone: only digits
+PHONE_RE = re.compile(r"^\d+$")
+# Regex for email: exactly one @, local part, domain with at least one dot
+EMAIL_REGISTRATION_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+# Special characters allowed in password
+PASSWORD_SPECIAL_CHARS = "!@#$%^&*()-_=+[]{}<>?"
+
+
+def validate_full_name(full_name: str) -> Tuple[str, str]:
+    """
+    Validates and normalizes full name for registration.
+    
+    Requirements:
+    - Min 2, max 60 characters
+    - Only letters (including accented), spaces, apostrophes, hyphens
+    - Collapse multiple spaces to one
+    - Trim leading/trailing spaces
+    """
+    # Normalize and trim
+    name = normalize_basic(full_name)
+    
+    # Collapse multiple spaces to one
+    name = " ".join(name.split())
+    
+    if not name:
+        return "", "Full name is required"
+    
+    if len(name) < 2:
+        return "", "Full name must be at least 2 characters"
+    
+    if len(name) > 60:
+        return "", "Full name must not exceed 60 characters"
+    
+    if not FULL_NAME_RE.match(name):
+        return "", "Full name can only contain letters, spaces, apostrophes, and hyphens"
+    
+    return name, ""
+
+
+def validate_registration_email(email: str, existing_users: list = None) -> Tuple[str, str]:
+    """
+    Validates and normalizes email for registration.
+    
+    Requirements:
+    - Max 254 characters
+    - Valid basic format (exactly one @, local part, domain with dot)
+    - Normalize to lowercase
+    - Must not already exist in database
+    """
+    # Normalize and convert to lowercase
+    email_clean = normalize_basic(email).lower()
+    
+    if not email_clean:
+        return "", "Email is required"
+    
+    if len(email_clean) > 254:
+        return "", "Email must not exceed 254 characters"
+    
+    # Check for exactly one @ symbol
+    if email_clean.count("@") != 1:
+        return "", "Email must contain exactly one @ symbol"
+    
+    # Validate basic structure
+    if not EMAIL_REGISTRATION_RE.match(email_clean):
+        return "", "Invalid email format"
+    
+    # Check if email already exists
+    if existing_users:
+        for user in existing_users:
+            if user.get("email", "").lower() == email_clean:
+                return "", "This email is already registered"
+    
+    return email_clean, ""
+
+
+def validate_phone(phone: str) -> Tuple[str, str]:
+    """
+    Validates and normalizes phone number for registration.
+    
+    Requirements:
+    - Only digits
+    - Length between 7 and 15 digits
+    - No internal spaces stored
+    """
+    # Remove all spaces
+    phone_clean = phone.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
+    phone_clean = normalize_basic(phone_clean)
+    
+    if not phone_clean:
+        return "", "Phone number is required"
+    
+    if not PHONE_RE.match(phone_clean):
+        return "", "Phone number must contain only digits"
+    
+    if len(phone_clean) < 7:
+        return "", "Phone number must be at least 7 digits"
+    
+    if len(phone_clean) > 15:
+        return "", "Phone number must not exceed 15 digits"
+    
+    return phone_clean, ""
+
+
+def validate_password(password: str, email: str = "", confirm_password: str = "") -> Tuple[str, str]:
+    """
+    Validates password for registration.
+    
+    Requirements:
+    - Min 8, max 64 characters
+    - At least one uppercase letter
+    - At least one lowercase letter
+    - At least one number
+    - At least one special character from: ! @ # $ % ^ & * ( ) - _ = + [ ] { } < > ?
+    - No whitespace
+    - Cannot equal email
+    - Must match confirmation password
+    """
+    if not password:
+        return "", "Password is required"
+    
+    if len(password) < 8:
+        return "", "Password must be at least 8 characters"
+    
+    if len(password) > 64:
+        return "", "Password must not exceed 64 characters"
+    
+    # Check for whitespace
+    if any(c.isspace() for c in password):
+        return "", "Password must not contain whitespace"
+    
+    # Check for at least one uppercase
+    if not any(c.isupper() for c in password):
+        return "", "Password must contain at least one uppercase letter"
+    
+    # Check for at least one lowercase
+    if not any(c.islower() for c in password):
+        return "", "Password must contain at least one lowercase letter"
+    
+    # Check for at least one digit
+    if not any(c.isdigit() for c in password):
+        return "", "Password must contain at least one number"
+    
+    # Check for at least one special character
+    if not any(c in PASSWORD_SPECIAL_CHARS for c in password):
+        return "", f"Password must contain at least one special character ({PASSWORD_SPECIAL_CHARS})"
+    
+    # Check password cannot equal email
+    if email and password == email:
+        return "", "Password cannot be the same as your email"
+    
+    # Check confirmation match
+    if confirm_password and password != confirm_password:
+        return "", "Password confirmation does not match"
+    
+    return password, ""
+
+
+def validate_registration_form(
+    full_name: str,
+    email: str,
+    phone: str,
+    password: str,
+    confirm_password: str,
+    existing_users: list = None
+) -> Tuple[Dict, Dict]:
+    """
+    Orchestrates all registration field validations.
+    
+    Returns:
+        clean (dict)  -> sanitized values safe for storage
+        errors (dict) -> field_name -> error_message
+    """
+    clean = {}
+    errors = {}
+    
+    # Validate full name
+    name_clean, err = validate_full_name(full_name)
+    if err:
+        errors["full_name"] = err
+    clean["full_name"] = name_clean
+    
+    # Validate email (pass existing users to check duplicates)
+    email_clean, err = validate_registration_email(email, existing_users)
+    if err:
+        errors["email"] = err
+    clean["email"] = email_clean
+    
+    # Validate phone
+    phone_clean, err = validate_phone(phone)
+    if err:
+        errors["phone"] = err
+    clean["phone"] = phone_clean
+    
+    # Validate password (pass email and confirm_password)
+    password_clean, err = validate_password(password, email_clean, confirm_password)
+    if err:
+        errors["password"] = err
+    clean["password"] = password_clean
+    
     return clean, errors

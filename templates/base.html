@@ -23,19 +23,23 @@
 
     <div class="top-actions">
       <form class="mini-search" action="{{ url_for('index') }}" method="get">
-        <input name="q" value="{{ request.args.get('q','') }}" placeholder="Search events..." />
+      <input name="q" value="{{ request.args.get('q','') }}" placeholder="Search events..." />
       </form>
 
-      {% if session.get("user_email") %}
-        <a class="btn btn-ghost" href="{{ url_for('profile') }}">My Profile</a>
+      {% if not current_user %}
+      <a class="btn btn-ghost" href="{{ url_for('login') }}">Login</a>
+      <a class="btn btn-primary" href="{{ url_for('register') }}">Register</a>
       {% else %}
-        <a class="btn btn-ghost" href="{{ url_for('login') }}">Login</a>
-        <a class="btn btn-primary" href="{{ url_for('register') }}">Register</a>
+      <a class="btn btn-ghost" href="{{ url_for('profile') }}">My Profile</a>
+      {% if current_user.get("role") == "admin" %}
+      <a class="btn btn-primary" href="{{ url_for('admin_users') }}">Admin Panel</a>
+      {% endif %}
+      <a class="btn btn-ghost" href="{{ url_for('logout') }}">Logout</a>
       {% endif %}
     </div>
-  </div>
-</header>
-{% endblock %}
+    </div>
+  </header>
+  {% endblock %}
 
   <main>
     {% block content %}{% endblock %}

@@ -3,12 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Optional, Dict
+from functools import wraps
 
 from flask import Flask, render_template, request, abort, url_for, redirect, session
 from pathlib import Path
 import json
 
-from validation import validate_payment_form
+from validation import validate_payment_form, validate_registration_form
 
 app = Flask(__name__)
 app.config["TEMPLATES_AUTO_RELOAD"] = True
@@ -21,6 +22,11 @@ USERS_PATH = BASE_DIR / "data" / "users.json"
 ORDERS_PATH = BASE_DIR / "data" / "orders.json"
 CATEGORIES = ["All", "Music", "Tech", "Sports", "Business"]
 CITIES = ["Any", "New York", "San Francisco", "Berlin", "London", "Oakland", "San Jose"]
+
+# Variables globales para control de intentos de login
+MAX_LOGIN_ATTEMPTS = 3
+LOCK_TIME_MINUTES = 5
+USER_LOGIN_ATTEMPTS: Dict[str, dict] = {}
 
 
 @dataclass(frozen=True)
@@ -50,6 +56,49 @@ def get_current_user() -> Optional[dict]:
         return None
     return find_user_by_email(email)
 
+
+# Context processor para que current_user esté disponible en todos los templates
+@app.context_processor
+def inject_current_user():
+    return {"current_user": get_current_user()}
+
+
+def require_login():
+    """
+    Decorador que restringe el acceso a rutas protegidas cuando no exista una sesión activa.
+    Redirige a login si el usuario no está autenticado.
+    """
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            user = get_current_user()
+            if not user:
+                return redirect(url_for("login"))
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+
+def require_role(required_role: str):
+    """
+    Decorador que implementa autorización basada en el rol del usuario.
+    Si el usuario está autenticado pero no tiene el rol requerido, devuelve 403 Forbidden.
+    Si el usuario no está autenticado, redirige a login.
+    """
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            user = get_current_user()
+            if not user:
+                return redirect(url_for("login"))
+            
+            user_role = user.get("role", "user")
+            if user_role != required_role:
+                abort(403)
+            
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
 
 
 def load_events() -> List[Event]:
@@ -151,12 +200,63 @@ def find_user_by_email(email: str) -> Optional[dict]:
     email_norm = (email or "").strip().lower()
     for u in users:
         if (u.get("email", "") or "").strip().lower() == email_norm:
-            return u
+            return _user_with_defaults(u)
     return None
 
 
 def user_exists(email: str) -> bool:
     return find_user_by_email(email) is not None
+
+
+# Funciones para gestionar intentos de login
+def is_user_locked(email: str) -> tuple[bool, float]:
+    """
+    Verifica si un usuario está bloqueado por intentos fallidos.
+    Retorna (bloqueado, tiempo_restante_segundos)
+    """
+    email_norm = (email or "").strip().lower()
+    if email_norm not in USER_LOGIN_ATTEMPTS:
+        return False, 0.0
+    
+    user_state = USER_LOGIN_ATTEMPTS[email_norm]
+    if user_state["intentos"] < MAX_LOGIN_ATTEMPTS:
+        return False, 0.0
+    
+    # Calcular tiempo desde el bloqueo
+    lock_time = user_state["tiempoBloqueo"]
+    elapsed = datetime.now().timestamp() - lock_time
+    remaining_seconds = (LOCK_TIME_MINUTES * 60) - elapsed
+    
+    if remaining_seconds <= 0:
+        # El bloqueo ha expirado
+        return False, 0.0
+    
+    return True, remaining_seconds
+
+
+def reset_user_attempts(email: str) -> None:
+    """Resetea el contador de intentos fallidos cuando el login es exitoso."""
+    email_norm = (email or "").strip().lower()
+    if email_norm in USER_LOGIN_ATTEMPTS:
+        del USER_LOGIN_ATTEMPTS[email_norm]
+
+
+def increment_user_attempts(email: str) -> None:
+    """Incrementa el contador de intentos fallidos."""
+    email_norm = (email or "").strip().lower()
+    if email_norm not in USER_LOGIN_ATTEMPTS:
+        USER_LOGIN_ATTEMPTS[email_norm] = {
+            "intentos": 0,
+            "tiempoBloqueo": 0
+        }
+    
+    user_state = USER_LOGIN_ATTEMPTS[email_norm]
+    user_state["intentos"] += 1
+    
+    # Si se alcanza el máximo de intentos, registrar el tiempo de bloqueo
+    if user_state["intentos"] >= MAX_LOGIN_ATTEMPTS:
+        user_state["tiempoBloqueo"] = datetime.now().timestamp()
+
 
 def load_orders() -> list[dict]:
     if not ORDERS_PATH.exists():
@@ -259,8 +359,23 @@ def login():
             form={"email": email},
         ), 400
 
+    # Verificar si el usuario está bloqueado
+    is_locked, remaining_seconds = is_user_locked(email)
+    if is_locked:
+        minutes_remaining = int(remaining_seconds // 60) + 1
+        error_msg = f"Account temporarily locked. Try again in {minutes_remaining} minute(s)."
+        return render_template(
+            "login.html",
+            error=error_msg,
+            field_errors={"email": " ", "password": " "},
+            form={"email": email},
+        ), 403
+
+    # Validar credenciales
     user = find_user_by_email(email)
     if not user or user.get("password") != password:
+        # Incrementar contador de intentos fallidos
+        increment_user_attempts(email)
         return render_template(
             "login.html",
             error="Invalid credentials.",
@@ -268,36 +383,73 @@ def login():
             form={"email": email},
         ), 401
 
+    # Login exitoso: resetear intentos fallidos
+    reset_user_attempts(email)
     session["user_email"] = (user.get("email") or "").strip().lower()
 
     return redirect(url_for("dashboard"))
+
+@app.get("/debug/session")
+def debug_session():
+    """Endpoint de debug para verificar el estado de la sesión."""
+    user_email = session.get("user_email")
+    current_user = get_current_user()
+    return {
+        "session_email": user_email,
+        "current_user": current_user.get("email") if current_user else None,
+        "user_role": current_user.get("role") if current_user else None,
+        "all_session_data": dict(session)
+    }
+
+@app.get("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("index"))
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "GET":
         return render_template("register.html")
 
+    # Get form data
     full_name = request.form.get("full_name", "")
     email = request.form.get("email", "")
     phone = request.form.get("phone", "")
     password = request.form.get("password", "")
     confirm_password = request.form.get("confirm_password", "")
 
-    if user_exists(email):
+    # Load existing users for duplicate email check
+    users = load_users()
+    
+    # Validate all registration fields
+    clean, errors = validate_registration_form(
+        full_name=full_name,
+        email=email,
+        phone=phone,
+        password=password,
+        confirm_password=confirm_password,
+        existing_users=users
+    )
+    
+    # If there are validation errors, return to registration with errors
+    if errors:
         return render_template(
             "register.html",
-            error="This email is already registered. Try signing in."
+            errors=errors,
+            full_name=full_name,
+            email=email,
+            phone=phone
         ), 400
-
-    users = load_users()
+    
+    # Create new user with validated data
     next_id = (max([u.get("id", 0) for u in users], default=0) + 1)
 
     users.append({
         "id": next_id,
-        "full_name": full_name,
-        "email": email,
-        "phone": phone,
-        "password": password,
+        "full_name": clean["full_name"],
+        "email": clean["email"],
+        "phone": clean["phone"],
+        "password": clean["password"],
         "role": "user",          
         "status": "active",
     })
@@ -307,6 +459,7 @@ def register():
     return redirect(url_for("login", registered="1"))
 
 @app.get("/dashboard")
+@require_login()
 def dashboard():
 
 
@@ -315,6 +468,7 @@ def dashboard():
     return render_template("dashboard.html", user_name=(user.get("full_name") if user else "User"), paid=paid)
 
 @app.route("/checkout/<int:event_id>", methods=["GET", "POST"])
+@require_login()
 def checkout(event_id: int):
 
 
@@ -394,6 +548,7 @@ def checkout(event_id: int):
 
 
 @app.route("/profile", methods=["GET", "POST"])
+@require_login()
 def profile():
  
 
@@ -443,7 +598,14 @@ def profile():
         field_errors=field_errors,
         success_message=success_msg,
     )
+
+@app.get("/admin")
+@require_role("admin")
+def admin():
+    return redirect(url_for("admin_users"))
+
 @app.get("/admin/users")
+@require_role("admin")
 def admin_users():
 
     q = (request.args.get("q") or "").strip().lower()
@@ -482,6 +644,7 @@ def admin_users():
     )
 
 @app.post("/admin/users/<int:user_id>/toggle")
+@require_role("admin")
 def admin_toggle_user(user_id: int):
     users = load_users()
     for u in users:
@@ -493,6 +656,7 @@ def admin_toggle_user(user_id: int):
     return redirect(url_for("admin_users"))
 
 @app.post("/admin/users/<int:user_id>/role")
+@require_role("admin")
 def admin_change_role(user_id: int):
     new_role = request.form.get("role", "user")
 

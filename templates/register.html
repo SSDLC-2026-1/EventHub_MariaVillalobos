@@ -24,20 +24,29 @@
       <label class="auth-label" for="full_name">Full Name</label>
       <div class="auth-input">
         <span class="auth-icon">👤</span>
-        <input id="full_name" name="full_name" type="text" placeholder="John Doe" />
+        <input id="full_name" name="full_name" type="text" placeholder="John Doe" value="{{ full_name or '' }}" />
       </div>
+      {% if errors and errors.full_name %}
+        <div class="auth-banner auth-banner-error" style="margin-top: 0.5rem;">{{ errors.full_name }}</div>
+      {% endif %}
 
       <label class="auth-label" for="email">Email</label>
       <div class="auth-input">
         <span class="auth-icon">✉️</span>
-        <input id="email" name="email" type="email" placeholder="john.doe@example.com" />
+        <input id="email" name="email" type="email" placeholder="john.doe@example.com" value="{{ email or '' }}" />
       </div>
+      {% if errors and errors.email %}
+        <div class="auth-banner auth-banner-error" style="margin-top: 0.5rem;">{{ errors.email }}</div>
+      {% endif %}
 
       <label class="auth-label" for="phone">Phone Number</label>
       <div class="auth-input">
         <span class="auth-icon">📞</span>
-        <input id="phone" name="phone" type="tel" placeholder="(+1) 555-123-4567" />
+        <input id="phone" name="phone" type="tel" placeholder="(+1) 555-123-4567" value="{{ phone or '' }}" />
       </div>
+      {% if errors and errors.phone %}
+        <div class="auth-banner auth-banner-error" style="margin-top: 0.5rem;">{{ errors.phone }}</div>
+      {% endif %}
 
       <label class="auth-label" for="password">Password</label>
       <div class="auth-input">
@@ -45,6 +54,9 @@
         <input id="password" name="password" type="password" placeholder="••••••••" />
         <span class="auth-eye">👁️</span>
       </div>
+      {% if errors and errors.password %}
+        <div class="auth-banner auth-banner-error" style="margin-top: 0.5rem;">{{ errors.password }}</div>
+      {% endif %}
 
       <label class="auth-label" for="confirm_password">Confirm Password</label>
       <div class="auth-input">
@@ -56,10 +68,10 @@
       <div class="auth-rules">
         <div class="auth-rules-title">Password must:</div>
         <ul class="auth-rules-list muted small">
-          <li>?</li>
-          <li>?</li>
-          <li>?</li>
-          <li>?</li>
+          <li>Be 8-64 characters long</li>
+          <li>Contain uppercase, lowercase, number, and special character</li>
+          <li>Not contain whitespace</li>
+          <li>Not be the same as your email</li>
         </ul>
       </div>
 
