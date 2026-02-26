@@ -6,19 +6,19 @@
 El objetivo de esta sección es evaluar la comprensión precisa de los conceptos teóricos cubiertos en clase. Las preguntas son de opción múltiple y siguen el modelo de examen del Certified Application Security Engineer y de DevSecOps Essentials.
 
 1. **¿Cuál de los siguientes no es un tipo de autorización?**
-   - [ ] a) Managed Access Control  
+   - [X] a) Managed Access Control  
    - [ ] b) Mandatory Access Control  
    - [ ] c) Discretionary Access Control  
    - [ ] d) Role Based Access Control  
 
 2. **¿Qué mecanismo de seguridad implementarías para restringir el acceso de los usuarios a recursos específicos dentro de una aplicación?**
    - [ ] a) Autenticación  
-   - [ ] b) Autorización  
+   - [X] b) Autorización  
    - [ ] c) Delegación  
    - [ ] d) Impersonación  
 
 3. **Según las prácticas de autenticación y autorización segura en el desarrollo de aplicaciones, ¿con qué tipo de privilegios no se debe ejecutar una aplicación?**
-   - [ ] a) Privilegios de cuenta de administrador  
+   - [X] a) Privilegios de cuenta de administrador  
    - [ ] b) Privilegios de cuenta de usuario  
    - [ ] c) Privilegios de cuenta de invitado  
    - [ ] d) Privilegios de cuenta normal  
@@ -26,11 +26,11 @@ El objetivo de esta sección es evaluar la comprensión precisa de los conceptos
 4. **¿Cuál de las siguientes técnicas de seguridad implica el proceso de convertir datos potencialmente peligrosos en formatos seguros que se pueden mostrar o almacenar de forma segura?**
    - [ ] a) Input Validation  
    - [ ] b) Encryption and Hashing  
-   - [ ] c) Output Encoding  
+   - [X] c) Output Encoding  
    - [ ] d) Access Control  
 
 5. **¿Cuál es el principio central de la práctica de seguridad "Secure by Default"?**
-   - [ ] a) Los sistemas deben estar diseñados para fallar en un estado seguro.  
+   - [X] a) Los sistemas deben estar diseñados para fallar en un estado seguro.  
    - [ ] b) Diseñar la seguridad en los niveles físico, identidad y acceso, perímetro, red, cómputo, aplicación y datos.  
    - [ ] c) Requiere autenticación y autorización para cada acción.  
    - [ ] d) Los requisitos de seguridad deben definirse al inicio del proceso de desarrollo de la aplicación.  
