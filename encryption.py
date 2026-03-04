@@ -8,6 +8,7 @@ En este módulo deberás implementar:
 - Descifrado AES (MODE_EAX)
 - Hash de contraseña con salt usando PBKDF2-HMAC-SHA256
 - Verificación de contraseña usando el mismo salt
+- Funciones auxiliares para cifrar/descifrar datos sensibles
 
 NO modificar la función encrypt_aes().
 """
@@ -17,6 +18,11 @@ from Crypto.Random import get_random_bytes
 import hashlib
 import os
 import hmac
+import base64
+
+# Llave global para cifrado de datos sensibles
+# En producción, esto debería venir de variables de entorno
+ENCRYPTION_KEY = get_random_bytes(32)  # 256 bits
 
 
 def encrypt_aes(texto, clave):
@@ -41,8 +47,6 @@ def encrypt_aes(texto, clave):
         nonce.hex(),
         tag.hex()
     )
-
-
 
 
 def decrypt_aes(texto_cifrado_hex, nonce_hex, tag_hex, clave):
@@ -71,6 +75,54 @@ def decrypt_aes(texto_cifrado_hex, nonce_hex, tag_hex, clave):
 
     # TODO: Convertir resultado a string y retornar
     return texto_descifrado_bytes.decode('utf-8')
+
+
+def encrypt_sensitive_data(data: str) -> dict:
+    """
+    Cifra datos sensibles usando AES-EAX con la llave global.
+    
+    Retorna un diccionario con:
+        - encrypted_data: texto cifrado en hex
+        - nonce: nonce usado en hex
+        - tag: tag de autenticación en hex
+    
+    Si data es None o vacío, retorna None.
+    """
+    if not data:
+        return None
+    
+    encrypted_hex, nonce_hex, tag_hex = encrypt_aes(data, ENCRYPTION_KEY)
+    
+    return {
+        "encrypted_data": encrypted_hex,
+        "nonce": nonce_hex,
+        "tag": tag_hex
+    }
+
+
+def decrypt_sensitive_data(encrypted_dict: dict) -> str:
+    """
+    Descifra datos sensibles usando AES-EAX con la llave global.
+    
+    Args:
+        encrypted_dict: Diccionario con encrypted_data, nonce y tag
+    
+    Returns:
+        str: Datos descifrados o cadena vacía si hay error
+    """
+    if not encrypted_dict:
+        return ""
+    
+    try:
+        return decrypt_aes(
+            encrypted_dict["encrypted_data"],
+            encrypted_dict["nonce"],
+            encrypted_dict["tag"],
+            ENCRYPTION_KEY
+        )
+    except (ValueError, KeyError, TypeError, Exception) as e:
+        print(f"Error al descifrar datos: {e}")
+        return ""
 
 
 def hash_password(password):
@@ -115,7 +167,6 @@ def hash_password(password):
         "salt": salt.hex(),
         "hash": key.hex()
     }
-
 
 
 def verify_password(password, stored_data):
@@ -199,3 +250,22 @@ if __name__ == "__main__":
           verify_password("Password123!", pwd_data))
     print("Verificación incorrecta:",
           verify_password("WrongPassword", pwd_data))
+    
+    print("\n=== PRUEBA CIFRADO DATOS SENSIBLES ===")
+    
+    email = "test@example.com"
+    phone = "+1234567890"
+    
+    # Cifrar datos
+    encrypted_email = encrypt_sensitive_data(email)
+    encrypted_phone = encrypt_sensitive_data(phone)
+    
+    print("Email cifrado:", encrypted_email)
+    print("Teléfono cifrado:", encrypted_phone)
+    
+    # Descifrar datos
+    decrypted_email = decrypt_sensitive_data(encrypted_email)
+    decrypted_phone = decrypt_sensitive_data(encrypted_phone)
+    
+    print("Email descifrado:", decrypted_email)
+    print("Teléfono descifrado:", decrypted_phone)

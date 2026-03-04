@@ -23,23 +23,20 @@
 
     <div class="top-actions">
       <form class="mini-search" action="{{ url_for('index') }}" method="get">
-      <input name="q" value="{{ request.args.get('q','') }}" placeholder="Search events..." />
-      </form>
+        <input name="q" value="{{ request.args.get('q','') }}" placeholder="Search events..." />
+      </form> 
 
-      {% if not current_user %}
-      <a class="btn btn-ghost" href="{{ url_for('login') }}">Login</a>
-      <a class="btn btn-primary" href="{{ url_for('register') }}">Register</a>
+      {% if session.get("user_email") %}
+        <a class="btn btn-ghost" href="{{ url_for('profile') }}">My Profile</a>
+        <a class="btn btn-logout" href="{{ url_for('logout') }}">Logout</a> 
       {% else %}
-      <a class="btn btn-ghost" href="{{ url_for('profile') }}">My Profile</a>
-      {% if current_user.get("role") == "admin" %}
-      <a class="btn btn-primary" href="{{ url_for('admin_users') }}">Admin Panel</a>
-      {% endif %}
-      <a class="btn btn-ghost" href="{{ url_for('logout') }}">Logout</a>
+        <a class="btn btn-ghost" href="{{ url_for('login') }}">Login</a>
+        <a class="btn btn-primary" href="{{ url_for('register') }}">Register</a>
       {% endif %}
     </div>
-    </div>
-  </header>
-  {% endblock %}
+  </div>
+</header>
+{% endblock %}
 
   <main>
     {% block content %}{% endblock %}

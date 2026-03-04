@@ -5,15 +5,19 @@ from datetime import datetime
 from typing import List, Optional, Dict
 from functools import wraps
 
-from flask import Flask, render_template, request, abort, url_for, redirect, session
+from flask import Flask, render_template, request, abort, url_for, redirect, session, flash
 from pathlib import Path
 import json
 
-from validation import validate_payment_form, validate_registration_form
+from validation import validate_payment_form
+from encryption import hash_password, verify_password, encrypt_sensitive_data, decrypt_sensitive_data
 
 app = Flask(__name__)
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 app.secret_key = "dev-secret-change-me"
+
+# Constante para tiempo de expiración de sesión (3 minutos en segundos)
+SESSION_TIMEOUT_SECONDS = 180
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -22,11 +26,6 @@ USERS_PATH = BASE_DIR / "data" / "users.json"
 ORDERS_PATH = BASE_DIR / "data" / "orders.json"
 CATEGORIES = ["All", "Music", "Tech", "Sports", "Business"]
 CITIES = ["Any", "New York", "San Francisco", "Berlin", "London", "Oakland", "San Jose"]
-
-# Variables globales para control de intentos de login
-MAX_LOGIN_ATTEMPTS = 3
-LOCK_TIME_MINUTES = 5
-USER_LOGIN_ATTEMPTS: Dict[str, dict] = {}
 
 
 @dataclass(frozen=True)
@@ -50,56 +49,69 @@ def _user_with_defaults(u: dict) -> dict:
     u.setdefault("locked_until", "") 
     return u
 
+def check_session_timeout():
+    """
+    Verifica si la sesión ha expirado.
+    Si ha pasado más de SESSION_TIMEOUT_SECONDS desde el login, invalida la sesión.
+    Retorna True si la sesión es válida, False si ha expirado.
+    """
+    login_time = session.get('login_time')
+    
+    if not login_time:
+        return False
+    
+    try:
+        # Convertir el tiempo de login a datetime si es string
+        if isinstance(login_time, str):
+            login_time = datetime.fromisoformat(login_time)
+        
+        # Calcular tiempo transcurrido
+        elapsed = (datetime.utcnow() - login_time).total_seconds()
+        
+        if elapsed > SESSION_TIMEOUT_SECONDS:
+            # Sesión expirada - limpiar
+            session.clear()
+            flash("Your session has expired. Please login again.", "info")
+            return False
+        
+        # Actualizar el tiempo de login para mantener la sesión activa
+        session['login_time'] = datetime.utcnow().isoformat()
+        return True
+        
+    except (ValueError, TypeError):
+        # Si hay error en el formato, invalidar sesión
+        session.clear()
+        return False
+
+def login_required(f):
+    """
+    Decorador para rutas que requieren autenticación.
+    Verifica que el usuario esté autenticado y que la sesión no haya expirado.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user = get_current_user()
+        if not user:
+            # Si no hay usuario o sesión expirada, redirigir al login
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    
+    return decorated_function
+
 def get_current_user() -> Optional[dict]:
+    """
+    Obtiene el usuario actual si la sesión es válida y no ha expirado.
+    Si la sesión ha expirado, retorna None.
+    """
     email = session.get("user_email")
     if not email:
         return None
+    
+    # Verificar timeout de sesión
+    if not check_session_timeout():
+        return None
+    
     return find_user_by_email(email)
-
-
-# Context processor para que current_user esté disponible en todos los templates
-@app.context_processor
-def inject_current_user():
-    return {"current_user": get_current_user()}
-
-
-def require_login():
-    """
-    Decorador que restringe el acceso a rutas protegidas cuando no exista una sesión activa.
-    Redirige a login si el usuario no está autenticado.
-    """
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            user = get_current_user()
-            if not user:
-                return redirect(url_for("login"))
-            return f(*args, **kwargs)
-        return decorated_function
-    return decorator
-
-
-def require_role(required_role: str):
-    """
-    Decorador que implementa autorización basada en el rol del usuario.
-    Si el usuario está autenticado pero no tiene el rol requerido, devuelve 403 Forbidden.
-    Si el usuario no está autenticado, redirige a login.
-    """
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            user = get_current_user()
-            if not user:
-                return redirect(url_for("login"))
-            
-            user_role = user.get("role", "user")
-            if user_role != required_role:
-                abort(403)
-            
-            return f(*args, **kwargs)
-        return decorated_function
-    return decorator
-
 
 def load_events() -> List[Event]:
     data = json.loads(EVENTS_PATH.read_text(encoding="utf-8"))
@@ -188,7 +200,25 @@ def load_users() -> list[dict]:
     if not USERS_PATH.exists():
         USERS_PATH.parent.mkdir(parents=True, exist_ok=True)
         USERS_PATH.write_text("[]", encoding="utf-8")
-    return json.loads(USERS_PATH.read_text(encoding="utf-8"))
+        return []
+    
+    try:
+        content = USERS_PATH.read_text(encoding="utf-8")
+        if not content.strip():  # Archivo vacío
+            return []
+        return json.loads(content)
+    except json.JSONDecodeError as e:
+        print(f"⚠️ Error al leer users.json: {e}")
+        print("Creando backup y reiniciando archivo...")
+        
+        # Crear backup del archivo corrupto
+        backup_path = USERS_PATH.with_suffix('.json.bak')
+        USERS_PATH.rename(backup_path)
+        print(f"Backup creado en: {backup_path}")
+        
+        # Crear nuevo archivo vacío
+        USERS_PATH.write_text("[]", encoding="utf-8")
+        return []
 
 
 def save_users(users: list[dict]) -> None:
@@ -200,63 +230,12 @@ def find_user_by_email(email: str) -> Optional[dict]:
     email_norm = (email or "").strip().lower()
     for u in users:
         if (u.get("email", "") or "").strip().lower() == email_norm:
-            return _user_with_defaults(u)
+            return u
     return None
 
 
 def user_exists(email: str) -> bool:
     return find_user_by_email(email) is not None
-
-
-# Funciones para gestionar intentos de login
-def is_user_locked(email: str) -> tuple[bool, float]:
-    """
-    Verifica si un usuario está bloqueado por intentos fallidos.
-    Retorna (bloqueado, tiempo_restante_segundos)
-    """
-    email_norm = (email or "").strip().lower()
-    if email_norm not in USER_LOGIN_ATTEMPTS:
-        return False, 0.0
-    
-    user_state = USER_LOGIN_ATTEMPTS[email_norm]
-    if user_state["intentos"] < MAX_LOGIN_ATTEMPTS:
-        return False, 0.0
-    
-    # Calcular tiempo desde el bloqueo
-    lock_time = user_state["tiempoBloqueo"]
-    elapsed = datetime.now().timestamp() - lock_time
-    remaining_seconds = (LOCK_TIME_MINUTES * 60) - elapsed
-    
-    if remaining_seconds <= 0:
-        # El bloqueo ha expirado
-        return False, 0.0
-    
-    return True, remaining_seconds
-
-
-def reset_user_attempts(email: str) -> None:
-    """Resetea el contador de intentos fallidos cuando el login es exitoso."""
-    email_norm = (email or "").strip().lower()
-    if email_norm in USER_LOGIN_ATTEMPTS:
-        del USER_LOGIN_ATTEMPTS[email_norm]
-
-
-def increment_user_attempts(email: str) -> None:
-    """Incrementa el contador de intentos fallidos."""
-    email_norm = (email or "").strip().lower()
-    if email_norm not in USER_LOGIN_ATTEMPTS:
-        USER_LOGIN_ATTEMPTS[email_norm] = {
-            "intentos": 0,
-            "tiempoBloqueo": 0
-        }
-    
-    user_state = USER_LOGIN_ATTEMPTS[email_norm]
-    user_state["intentos"] += 1
-    
-    # Si se alcanza el máximo de intentos, registrar el tiempo de bloqueo
-    if user_state["intentos"] >= MAX_LOGIN_ATTEMPTS:
-        user_state["tiempoBloqueo"] = datetime.now().timestamp()
-
 
 def load_orders() -> list[dict]:
     if not ORDERS_PATH.exists():
@@ -271,6 +250,32 @@ def save_orders(orders: list[dict]) -> None:
 
 def next_order_id(orders: list[dict]) -> int:
     return max([o.get("id", 0) for o in orders], default=0) + 1
+
+def migrate_user_passwords():
+    """
+    Convierte contraseñas en texto plano al nuevo formato con hash.
+    Esta función debe ejecutarse una sola vez para migrar usuarios existentes.
+    """
+    users = load_users()
+    modified = False
+    
+    for user in users:
+        password = user.get("password")
+        # Si la contraseña es un string (formato antiguo)
+        if isinstance(password, str):
+            print(f"Migrando usuario: {user.get('email')} - password en texto plano detectado")
+            # Crear hash de la contraseña
+            user["password"] = hash_password(password)
+            modified = True
+    
+    if modified:
+        save_users(users)
+        print("✅ Usuarios migrados al nuevo formato de hash")
+    else:
+        print("✓ No se encontraron usuarios con password en texto plano")
+
+with app.app_context():
+    migrate_user_passwords()
 
 
 # -----------------------------
@@ -359,23 +364,8 @@ def login():
             form={"email": email},
         ), 400
 
-    # Verificar si el usuario está bloqueado
-    is_locked, remaining_seconds = is_user_locked(email)
-    if is_locked:
-        minutes_remaining = int(remaining_seconds // 60) + 1
-        error_msg = f"Account temporarily locked. Try again in {minutes_remaining} minute(s)."
-        return render_template(
-            "login.html",
-            error=error_msg,
-            field_errors={"email": " ", "password": " "},
-            form={"email": email},
-        ), 403
-
-    # Validar credenciales
     user = find_user_by_email(email)
-    if not user or user.get("password") != password:
-        # Incrementar contador de intentos fallidos
-        increment_user_attempts(email)
+    if not user:
         return render_template(
             "login.html",
             error="Invalid credentials.",
@@ -383,73 +373,99 @@ def login():
             form={"email": email},
         ), 401
 
-    # Login exitoso: resetear intentos fallidos
-    reset_user_attempts(email)
+    # Verificar la contraseña
+    stored_password = user.get("password")
+    
+    # Si la contraseña almacenada es un string (formato antiguo), rechazar login
+    if isinstance(stored_password, str):
+        return render_template(
+            "login.html",
+            error="Invalid credentials.",
+            field_errors={"email": " ", "password": " "},
+            form={"email": email},
+        ), 401
+    
+    # Verificar con el nuevo sistema de hash
+    if not verify_password(password, stored_password):
+        return render_template(
+            "login.html",
+            error="Invalid credentials.",
+            field_errors={"email": " ", "password": " "},
+            form={"email": email},
+        ), 401
+
+    # Establecer sesión con tiempo de login
     session["user_email"] = (user.get("email") or "").strip().lower()
+    session["login_time"] = datetime.utcnow().isoformat()
 
     return redirect(url_for("dashboard"))
-
-@app.get("/debug/session")
-def debug_session():
-    """Endpoint de debug para verificar el estado de la sesión."""
-    user_email = session.get("user_email")
-    current_user = get_current_user()
-    return {
-        "session_email": user_email,
-        "current_user": current_user.get("email") if current_user else None,
-        "user_role": current_user.get("role") if current_user else None,
-        "all_session_data": dict(session)
-    }
-
-@app.get("/logout")
-def logout():
-    session.clear()
-    return redirect(url_for("index"))
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "GET":
         return render_template("register.html")
 
-    # Get form data
     full_name = request.form.get("full_name", "")
     email = request.form.get("email", "")
     phone = request.form.get("phone", "")
     password = request.form.get("password", "")
     confirm_password = request.form.get("confirm_password", "")
+    agree = request.form.get("agree") == "on"
 
-    # Load existing users for duplicate email check
-    users = load_users()
-    
-    # Validate all registration fields
-    clean, errors = validate_registration_form(
-        full_name=full_name,
-        email=email,
-        phone=phone,
-        password=password,
-        confirm_password=confirm_password,
-        existing_users=users
-    )
-    
-    # If there are validation errors, return to registration with errors
-    if errors:
+    # Validar términos y condiciones
+    if not agree:
         return render_template(
             "register.html",
-            errors=errors,
-            full_name=full_name,
-            email=email,
-            phone=phone
+            error="You must agree to the Terms & Privacy."
         ), 400
-    
-    # Create new user with validated data
+
+    # Validar que las contraseñas coincidan
+    if password != confirm_password:
+        return render_template(
+            "register.html",
+            error="Passwords do not match."
+        ), 400
+
+    # Validar fortaleza de la contraseña
+    password_errors = []
+    if len(password) < 8:
+        password_errors.append("at least 8 characters")
+    if not any(c.isupper() for c in password):
+        password_errors.append("at least one uppercase letter")
+    if not any(c.islower() for c in password):
+        password_errors.append("at least one lowercase letter")
+    if not any(c.isdigit() for c in password):
+        password_errors.append("at least one number")
+    if not any(c in "!@#$%^&*" for c in password):
+        password_errors.append("at least one special character (!@#$%^&*)")
+
+    if password_errors:
+        return render_template(
+            "register.html",
+            error="Password must include: " + ", ".join(password_errors)
+        ), 400
+
+    if user_exists(email):
+        return render_template(
+            "register.html",
+            error="This email is already registered. Try signing in."
+        ), 400
+
+    users = load_users()
     next_id = (max([u.get("id", 0) for u in users], default=0) + 1)
+
+    # Generar hash de la contraseña
+    password_hash = hash_password(password)
+    
+    # Cifrar el número de teléfono antes de almacenarlo
+    encrypted_phone = encrypt_sensitive_data(phone) if phone else None
 
     users.append({
         "id": next_id,
-        "full_name": clean["full_name"],
-        "email": clean["email"],
-        "phone": clean["phone"],
-        "password": clean["password"],
+        "full_name": full_name,
+        "email": email,
+        "phone": encrypted_phone,  # Guardar teléfono cifrado
+        "password": password_hash,  # Guardar el diccionario con el hash
         "role": "user",          
         "status": "active",
     })
@@ -458,20 +474,37 @@ def register():
 
     return redirect(url_for("login", registered="1"))
 
+@app.route("/logout")
+def logout():
+    """
+    Cierra la sesión del usuario actual:
+    - Elimina toda la información de la sesión
+    - Redirige a la página principal
+    """
+    session.clear()
+    flash("You have been logged out successfully.", "info")
+    return redirect(url_for('index'))
+
 @app.get("/dashboard")
-@require_login()
+@login_required
 def dashboard():
-
-
     paid = request.args.get("paid") == "1"
     user = get_current_user()
-    return render_template("dashboard.html", user_name=(user.get("full_name") if user else "User"), paid=paid)
+    
+    # Descifrar el teléfono para mostrarlo en el dashboard si es necesario
+    user_phone = None
+    if user and user.get("phone"):
+        user_phone = decrypt_sensitive_data(user.get("phone"))
+    
+    return render_template(
+        "dashboard.html", 
+        user_name=(user.get("full_name") if user else "User"), 
+        user_phone=user_phone,
+        paid=paid
+    )
 
 @app.route("/checkout/<int:event_id>", methods=["GET", "POST"])
-@require_login()
 def checkout(event_id: int):
-
-
     events = load_events()
     event = next((e for e in events if e.id == event_id), None)
     if not event:
@@ -526,6 +559,14 @@ def checkout(event_id: int):
 
     orders = load_orders()
     order_id = next_order_id(orders)
+    
+    # Cifrar el email de facturación antes de almacenarlo
+    encrypted_billing_email = encrypt_sensitive_data(clean.get("billing_email", ""))
+
+    # Ofuscar el número de tarjeta
+    card_number_full = clean.get("card", "")
+    last_four = card_number_full[-4:] if len(card_number_full) >= 4 else ""
+    obfuscated_card = f"**** **** **** {last_four}" if last_four else ""
 
     orders.append({
         "id": order_id,
@@ -538,7 +579,12 @@ def checkout(event_id: int):
         "total": total,
         "status": "PAID",
         "created_at": datetime.utcnow().isoformat(),
-        "payment": form_data
+        "payment": {
+            "card": obfuscated_card,
+            "exp_date": form_data.get("exp_date", ""),
+            "name_on_card": form_data.get("name_on_card", ""),
+            "billing_email": encrypted_billing_email
+        }
     })
 
     save_orders(orders)
@@ -546,21 +592,24 @@ def checkout(event_id: int):
     return redirect(url_for("dashboard", paid="1"))
 
 
-
 @app.route("/profile", methods=["GET", "POST"])
-@require_login()
+@login_required
 def profile():
- 
-
     user = get_current_user()
     if not user:
         session.clear()
         return redirect(url_for("login"))
 
+    # Descifrar el teléfono para mostrarlo en el formulario
+    user_phone = ""
+    if user.get("phone"):
+        decrypted_phone = decrypt_sensitive_data(user.get("phone"))
+        user_phone = decrypted_phone if decrypted_phone else ""
+
     form = {
         "full_name": user.get("full_name", ""),
         "email": user.get("email", ""),
-        "phone": user.get("phone", ""),
+        "phone": user_phone,
     }
 
     field_errors = {}  
@@ -580,17 +629,53 @@ def profile():
         for u in users:
             if (u.get("email") or "").strip().lower() == email_norm:
                 u["full_name"] = full_name
-                u["phone"] = phone
+                
+                # Cifrar el nuevo número de teléfono si se proporcionó
+                if phone:
+                    u["phone"] = encrypt_sensitive_data(phone)
+                else:
+                    u["phone"] = None
 
+                # Si se está cambiando la contraseña
                 if new_password:
-                    u["password"] = new_password
+                    # Verificar que la contraseña actual sea correcta
+                    stored_password = u.get("password")
+                    if isinstance(stored_password, str):
+                        field_errors["current_password"] = "Invalid current password"
+                        break
+                    
+                    if not verify_password(current_password, stored_password):
+                        field_errors["current_password"] = "Current password is incorrect"
+                        break
+                    
+                    # Verificar que las nuevas contraseñas coincidan
+                    if new_password != confirm_new_password:
+                        field_errors["new_password"] = "New passwords do not match"
+                        break
+                    
+                    # Actualizar con nuevo hash
+                    u["password"] = hash_password(new_password)
+                
                 break
 
-        save_users(users)
-
-        form["full_name"] = full_name
-        form["phone"] = phone
-        success_msg = "Profile updated successfully."
+        if not field_errors:
+            save_users(users)
+            form["full_name"] = full_name
+            form["phone"] = phone
+            success_msg = "Profile updated successfully."
+        else:
+            # Recargar el usuario actualizado para el formulario
+            user = find_user_by_email(email_norm)
+            user_phone = ""
+            if user.get("phone"):
+                decrypted_phone = decrypt_sensitive_data(user.get("phone"))
+                user_phone = decrypted_phone if decrypted_phone else ""
+            
+            form = {
+                "full_name": user.get("full_name", ""),
+                "email": user.get("email", ""),
+                "phone": user_phone,
+            }
 
     return render_template(
         "profile.html",
@@ -599,21 +684,23 @@ def profile():
         success_message=success_msg,
     )
 
-@app.get("/admin")
-@require_role("admin")
-def admin():
-    return redirect(url_for("admin_users"))
-
 @app.get("/admin/users")
-@require_role("admin")
+@login_required
 def admin_users():
-
     q = (request.args.get("q") or "").strip().lower()
     role = (request.args.get("role") or "all").strip().lower()
     status = (request.args.get("status") or "all").strip().lower()
     lockout = (request.args.get("lockout") or "all").strip().lower()
 
     users = [_user_with_defaults(u) for u in load_users()]
+    
+    # Descifrar teléfonos para mostrarlos en la vista de admin
+    for user in users:
+        if user.get("phone"):
+            decrypted = decrypt_sensitive_data(user.get("phone"))
+            user["phone_display"] = decrypted if decrypted else "[Cifrado]"
+        else:
+            user["phone_display"] = ""
 
     # filtros
     if q:
@@ -644,7 +731,7 @@ def admin_users():
     )
 
 @app.post("/admin/users/<int:user_id>/toggle")
-@require_role("admin")
+@login_required
 def admin_toggle_user(user_id: int):
     users = load_users()
     for u in users:
@@ -656,7 +743,7 @@ def admin_toggle_user(user_id: int):
     return redirect(url_for("admin_users"))
 
 @app.post("/admin/users/<int:user_id>/role")
-@require_role("admin")
+@login_required
 def admin_change_role(user_id: int):
     new_role = request.form.get("role", "user")
 

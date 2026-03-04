@@ -12,8 +12,6 @@
         <h1 class="admin-title">User Management</h1>
         <div class="muted small">Manage, filter, and audit platform user accounts.</div>
       </div>
-
-
     </div>
 
     <!-- Filters -->
@@ -71,6 +69,7 @@
           <tr>
             <th>User</th>
             <th>Email</th>
+            <th>Phone</th>
             <th>Role</th>
             <th>Status</th>
             <th>Lockout Status</th>
@@ -91,6 +90,7 @@
             </td>
 
             <td class="muted">{{ u.email }}</td>
+            <td class="muted">{{ u.phone_display or "—" }}</td>
 
             <td>
               <form method="post" action="{{ url_for('admin_change_role', user_id=u.id) }}">
