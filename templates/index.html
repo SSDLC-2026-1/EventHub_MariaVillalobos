@@ -2,20 +2,19 @@
 {% set title = "EventHub - Discover Events" %}
 
 {% block content %}
-<section class="hero">
+<section class="hero" data-testid="home-hero">
   <div class="container hero-inner">
-    <h1>Discover Events Near You</h1>
-    <p class="muted">Find unforgettable experiences, concerts, conferences, and more in your city.</p>
+    <h1 data-testid="home-title">Discover Events Near You</h1>
 
-    <form class="hero-search" action="{{ url_for('index') }}" method="get">
-      <input name="q" value="{{ q }}" placeholder="Event name or keyword" />
-      <select name="city">
+    <form class="hero-search" action="{{ url_for('index') }}" method="get" data-testid="home-search-form">
+      <input name="q" value="{{ q }}" placeholder="Event name or keyword" data-testid="search-keyword" />
+      <select name="city" data-testid="search-city">
         {% for c in cities %}
           <option value="{{ c }}" {% if c == city %}selected{% endif %}>{{ c }}</option>
         {% endfor %}
       </select>
-      <input type="date" name="date" value="{{ date_str }}" />
-      <button class="btn btn-primary" type="submit">Search</button>
+      <input type="date" name="date" value="{{ date_str }}" data-testid="search-date" />
+      <button class="btn btn-primary" type="submit" data-testid="search-submit">Search</button>
     </form>
   </div>
 </section>
@@ -25,17 +24,17 @@
     <h2 class="section-title">Featured Events</h2>
     <div class="grid cards-3">
       {% for e in featured %}
-        <article class="card">
-          <img class="card-img" src="{{ e.banner_url }}" alt="Event banner">
+        <article class="card" data-testid="featured-event-card-{{ e.id }}">
+          <img class="card-img" src="{{ e.banner_url }}" alt="Event banner" data-testid="featured-event-image-{{ e.id }}">
           <div class="card-body">
-            <h3 class="card-title">{{ e.title }}</h3>
-            <div class="card-meta">
-              <div>{{ e.start.strftime("%b %d, %Y • %I:%M %p") }}</div>
-              <div>{{ e.venue }}, {{ e.city }}</div>
-            </div>
+            <h3 class="card-title" data-testid="featured-event-title-{{ e.id }}">{{ e.title }}</h3>
             <div class="card-row">
-              <span class="price">${{ "%.2f"|format(e.price_usd) }}</span>
-              <a class="btn btn-ghost" href="{{ url_for('event_detail', event_id=e.id) }}">View Details</a>
+              <span class="price" data-testid="featured-event-price-{{ e.id }}">${{ "%.2f"|format(e.price_usd) }}</span>
+              <a class="btn btn-ghost"
+                href="{{ url_for('event_detail', event_id=e.id) }}"
+                data-testid="featured-event-view-{{ e.id }}">
+                View Details
+              </a>
             </div>
           </div>
         </article>
@@ -70,15 +69,15 @@
     <div class="grid cards-3">
       {% for e in upcoming %}
         <article class="card">
-          <img class="card-img" src="{{ e.banner_url }}" alt="Event banner">
+          <img class="card-img" src="{{ e.banner_url }}" alt="Event banner" data-testid="upcoming-event-card-{{ e.id }}">
           <div class="card-body">
-            <h3 class="card-title">{{ e.title }}</h3>
+            <h3 class="card-title" data-testid="upcoming-event-title-{{ e.id }}">{{ e.title }}</h3>
             <div class="card-meta">
               <div>{{ e.start.strftime("%b %d, %Y • %I:%M %p") }}</div>
               <div>{{ e.venue }}, {{ e.city }}</div>
             </div>
             <div class="card-row">
-              <span class="price">${{ "%.2f"|format(e.price_usd) }}</span>
+              <span class="price"data-testid="upcoming-event-price-{{ e.id }}">${{ "%.2f"|format(e.price_usd) }}</span>
               <a class="btn btn-ghost" href="{{ url_for('event_detail', event_id=e.id) }}">View Details</a>
             </div>
           </div>

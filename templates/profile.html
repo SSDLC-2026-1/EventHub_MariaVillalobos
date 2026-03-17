@@ -4,85 +4,138 @@
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='profile.css') }}">
 
-<section class="section">
-  <div class="container">
-    <div class="profile-wrap">
-      <div class="profile-card">
-        <div class="profile-header">
+<section class="section" data-testid="profile-page">
+  <div class="container" data-testid="profile-container">
+    <div class="profile-wrap" data-testid="profile-wrap">
+
+      <div class="profile-card" data-testid="profile-card">
+        <div class="profile-header" data-testid="profile-header">
           <div>
-            <h2 class="profile-title">Profile Settings</h2>
-            <div class="muted small">Manage your public information and account details.</div>
+            <h2 class="profile-title" data-testid="profile-title">Profile Settings</h2>
+            <div class="muted small" data-testid="profile-subtitle">Manage your public information and account details.</div>
           </div>
-          <div class="profile-icon">👤</div>
+          <div class="profile-icon" data-testid="profile-icon">👤</div>
         </div>
 
         {% if success_message %}
-          <div class="profile-success">{{ success_message }}</div>
+          <div class="profile-success" data-testid="profile-success">{{ success_message }}</div>
         {% endif %}
 
-        <form method="post" action="{{ url_for('profile') }}" class="profile-form">
-          <label class="auth-label" for="full_name">Full Name</label>
-          <div class="auth-input {% if field_errors.get('full_name') %}has-error{% endif %}">
-            <span class="auth-icon">👤</span>
-            <input id="full_name" name="full_name" type="text" value="{{ form.full_name }}" placeholder="John Doe" autocomplete="name">
-          </div>
-          {% if field_errors.get('full_name') %}<div class="field-error">⛔ {{ field_errors.get('full_name') }}</div>{% endif %}
+        <form method="post"
+              action="{{ url_for('profile') }}"
+              class="profile-form"
+              data-testid="profile-form">
 
-          <label class="auth-label" for="email">Email Address</label>
-          <div class="auth-input is-readonly">
-            <span class="auth-icon">✉️</span>
-            <input id="email" name="email" type="email" value="{{ form.email }}" readonly>
+          <label class="auth-label" for="full_name" data-testid="profile-full-name-label">Full Name</label>
+          <div class="auth-input {% if field_errors.get('full_name') %}has-error{% endif %}" data-testid="profile-full-name-wrapper">
+            <span class="auth-icon" data-testid="profile-full-name-icon">👤</span>
+            <input id="full_name"
+                   name="full_name"
+                   type="text"
+                   value="{{ form.full_name }}"
+                   placeholder="John Doe"
+                   autocomplete="name"
+                   data-testid="profile-full-name">
+          </div>
+          {% if field_errors.get('full_name') %}
+            <div class="field-error" data-testid="profile-full-name-error">⛔ {{ field_errors.get('full_name') }}</div>
+          {% endif %}
+
+          <label class="auth-label" for="email" data-testid="profile-email-label">Email Address</label>
+          <div class="auth-input is-readonly" data-testid="profile-email-wrapper">
+            <span class="auth-icon" data-testid="profile-email-icon">✉️</span>
+            <input id="email"
+                   name="email"
+                   type="email"
+                   value="{{ form.email }}"
+                   readonly
+                   data-testid="profile-email">
           </div>
 
-          <label class="auth-label" for="phone">Phone Number</label>
-          <div class="auth-input {% if field_errors.get('phone') %}has-error{% endif %}">
-            <span class="auth-icon">📞</span>
-            <input id="phone" name="phone" type="text" value="{{ form.phone }}" placeholder="3001234567" autocomplete="tel">
+          <label class="auth-label" for="phone" data-testid="profile-phone-label">Phone Number</label>
+          <div class="auth-input {% if field_errors.get('phone') %}has-error{% endif %}" data-testid="profile-phone-wrapper">
+            <span class="auth-icon" data-testid="profile-phone-icon">📞</span>
+            <input id="phone"
+                   name="phone"
+                   type="text"
+                   value="{{ form.phone }}"
+                   placeholder="3001234567"
+                   autocomplete="tel"
+                   data-testid="profile-phone">
           </div>
-          {% if field_errors.get('phone') %}<div class="field-error">⛔ {{ field_errors.get('phone') }}</div>{% endif %}
+          {% if field_errors.get('phone') %}
+            <div class="field-error" data-testid="profile-phone-error">⛔ {{ field_errors.get('phone') }}</div>
+          {% endif %}
 
-          <div class="security-card">
-            <div class="security-left">
-              <div class="security-title">Account Security</div>
-              <div class="muted small">Change your password below.</div>
+          <div class="security-card" data-testid="profile-security-card">
+            <div class="security-left" data-testid="profile-security-left">
+              <div class="security-title" data-testid="profile-security-title">Account Security</div>
+              <div class="muted small" data-testid="profile-security-subtitle">Change your password below.</div>
             </div>
           </div>
 
-          <div class="security-grid">
-            <div>
-              <label class="auth-label" for="current_password">Current Password</label>
-              <div class="auth-input {% if field_errors.get('current_password') %}has-error{% endif %}">
-                <span class="auth-icon">🔑</span>
-                <input id="current_password" name="current_password" type="password" placeholder="••••••••">
+          <div class="security-grid" data-testid="profile-security-grid">
+            <div data-testid="profile-current-password-group">
+              <label class="auth-label" for="current_password" data-testid="profile-current-password-label">Current Password</label>
+              <div class="auth-input {% if field_errors.get('current_password') %}has-error{% endif %}" data-testid="profile-current-password-wrapper">
+                <span class="auth-icon" data-testid="profile-current-password-icon">🔑</span>
+                <input id="current_password"
+                       name="current_password"
+                       type="password"
+                       placeholder="••••••••"
+                       data-testid="profile-current-password">
               </div>
-              {% if field_errors.get('current_password') %}<div class="field-error">⛔ {{ field_errors.get('current_password') }}</div>{% endif %}
+              {% if field_errors.get('current_password') %}
+                <div class="field-error" data-testid="profile-current-password-error">⛔ {{ field_errors.get('current_password') }}</div>
+              {% endif %}
             </div>
 
-            <div>
-              <label class="auth-label" for="new_password">New Password</label>
-              <div class="auth-input {% if field_errors.get('new_password') %}has-error{% endif %}">
-                <span class="auth-icon">🆕</span>
-                <input id="new_password" name="new_password" type="password" placeholder="••••••••">
+            <div data-testid="profile-new-password-group">
+              <label class="auth-label" for="new_password" data-testid="profile-new-password-label">New Password</label>
+              <div class="auth-input {% if field_errors.get('new_password') %}has-error{% endif %}" data-testid="profile-new-password-wrapper">
+                <span class="auth-icon" data-testid="profile-new-password-icon">🆕</span>
+                <input id="new_password"
+                       name="new_password"
+                       type="password"
+                       placeholder="••••••••"
+                       data-testid="profile-new-password">
               </div>
-              {% if field_errors.get('new_password') %}<div class="field-error">⛔ {{ field_errors.get('new_password') }}</div>{% endif %}
+              {% if field_errors.get('new_password') %}
+                <div class="field-error" data-testid="profile-new-password-error">⛔ {{ field_errors.get('new_password') }}</div>
+              {% endif %}
             </div>
 
-            <div>
-              <label class="auth-label" for="confirm_new_password">Confirm New Password</label>
-              <div class="auth-input {% if field_errors.get('confirm_new_password') %}has-error{% endif %}">
-                <span class="auth-icon">✅</span>
-                <input id="confirm_new_password" name="confirm_new_password" type="password" placeholder="••••••••">
+            <div data-testid="profile-confirm-new-password-group">
+              <label class="auth-label" for="confirm_new_password" data-testid="profile-confirm-new-password-label">Confirm New Password</label>
+              <div class="auth-input {% if field_errors.get('confirm_new_password') %}has-error{% endif %}" data-testid="profile-confirm-new-password-wrapper">
+                <span class="auth-icon" data-testid="profile-confirm-new-password-icon">✅</span>
+                <input id="confirm_new_password"
+                       name="confirm_new_password"
+                       type="password"
+                       placeholder="••••••••"
+                       data-testid="profile-confirm-new-password">
               </div>
-              {% if field_errors.get('confirm_new_password') %}<div class="field-error">⛔ {{ field_errors.get('confirm_new_password') }}</div>{% endif %}
+              {% if field_errors.get('confirm_new_password') %}
+                <div class="field-error" data-testid="profile-confirm-new-password-error">⛔ {{ field_errors.get('confirm_new_password') }}</div>
+              {% endif %}
             </div>
           </div>
 
-          <div class="profile-actions">
-            <a class="btn btn-ghost" href="{{ url_for('dashboard') }}">Cancel Changes</a>
-            <button class="btn btn-primary" type="submit">Save Changes</button>
+          <div class="profile-actions" data-testid="profile-actions">
+            <a class="btn btn-ghost"
+               href="{{ url_for('dashboard') }}"
+               data-testid="profile-cancel">
+              Cancel Changes
+            </a>
+            <button class="btn btn-primary"
+                    type="submit"
+                    data-testid="profile-save">
+              Save Changes
+            </button>
           </div>
         </form>
       </div>
+
     </div>
   </div>
 </section>

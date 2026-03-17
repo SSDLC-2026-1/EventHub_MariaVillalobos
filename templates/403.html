@@ -4,7 +4,7 @@
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='forbidden.css') }}">
 
-<section class="section">
+<section class="section" data-testid="forbidden-page">
   <div class="container forbidden-wrap">
 
     <div class="crumbs muted small">
@@ -21,7 +21,7 @@
       </div>
 
       <div class="forbidden-kicker">ERROR 403</div>
-      <h1 class="forbidden-title">Access Denied</h1>
+      <h1 class="forbidden-title" data-testid="forbidden-title">Access Denied</h1>
 
       <p class="forbidden-desc">
         You don't have permission to access this page.<br>

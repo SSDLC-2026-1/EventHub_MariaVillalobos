@@ -4,85 +4,118 @@
 {% block header %}{% endblock %}
 
 {% block content %}
-<section class="auth-page">
-  <div class="auth-card auth-card-tall">
-    <div class="auth-brand auth-brand-center">
-      <div class="auth-logo">EH</div>
+<section class="auth-page" data-testid="register-page">
+  <div class="auth-card auth-card-tall" data-testid="register-card">
+    <div class="auth-brand auth-brand-center" data-testid="register-brand">
+      <div class="auth-logo" data-testid="register-logo">EH</div>
     </div>
 
-    <h1 class="auth-title">Create your EventHub account</h1>
-    <p class="auth-subtext muted">Get tickets, transfer them, and manage your events securely.</p>
+    <h1 class="auth-title" data-testid="register-title">Create your EventHub account</h1>
+    <p class="auth-subtext muted" data-testid="register-subtext">Get tickets, transfer them, and manage your events securely.</p>
 
     {% if demo_message %}
-      <div class="auth-banner auth-banner-ok">{{ demo_message }}</div>
+      <div class="auth-banner auth-banner-ok" data-testid="register-success-banner">{{ demo_message }}</div>
     {% endif %}
     {% if error %}
-      <div class="auth-banner auth-banner-error">{{ error }}</div>
+      <div class="auth-banner auth-banner-error" data-testid="register-error-banner">{{ error }}</div>
     {% endif %}
 
-    <form class="auth-form" method="post" action="{{ url_for('register') }}">
-      <label class="auth-label" for="full_name">Full Name</label>
-      <div class="auth-input {% if field_errors.get('full_name') %}has-error{% endif %}">
-        <span class="auth-icon">👤</span>
-        <input id="full_name" name="full_name" type="text" placeholder="John Doe" value="{{ form.get('full_name','') }}" />
+    <form class="auth-form"
+          method="post"
+          action="{{ url_for('register') }}"
+          data-testid="register-form">
+      <label class="auth-label" for="full_name" data-testid="register-full-name-label">Full Name</label>
+      <div class="auth-input {% if field_errors.get('full_name') %}has-error{% endif %}" data-testid="register-full-name-wrapper">
+        <span class="auth-icon" data-testid="register-full-name-icon">👤</span>
+        <input id="full_name"
+               name="full_name"
+               type="text"
+               placeholder="John Doe"
+               value="{{ form.get('full_name','') }}"
+               data-testid="register-full-name" />
       </div>
-      {% if field_errors.get('full_name') %}<div class="auth-help auth-help-error">{{ field_errors.get('full_name') }}</div>{% endif %}
+      {% if field_errors.get('full_name') %}<div class="auth-help auth-help-error" data-testid="register-full-name-error">{{ field_errors.get('full_name') }}</div>{% endif %}
 
-      <label class="auth-label" for="email">Email</label>
-      <div class="auth-input {% if field_errors.get('email') %}has-error{% endif %}">
-        <span class="auth-icon">✉️</span>
-        <input id="email" name="email" type="email" placeholder="john.doe@example.com" value="{{ form.get('email','') }}" />
+      <label class="auth-label" for="email" data-testid="register-email-label">Email</label>
+      <div class="auth-input {% if field_errors.get('email') %}has-error{% endif %}" data-testid="register-email-wrapper">
+        <span class="auth-icon" data-testid="register-email-icon">✉️</span>
+        <input id="email"
+               name="email"
+               type="email"
+               placeholder="john.doe@example.com"
+               value="{{ form.get('email','') }}"
+               data-testid="register-email" />
       </div>
-      {% if field_errors.get('email') %}<div class="auth-help auth-help-error">{{ field_errors.get('email') }}</div>{% endif %}
+      {% if field_errors.get('email') %}<div class="auth-help auth-help-error" data-testid="register-email-error">{{ field_errors.get('email') }}</div>{% endif %}
 
-      <label class="auth-label" for="phone">Phone Number</label>
-      <div class="auth-input {% if field_errors.get('phone') %}has-error{% endif %}">
-        <span class="auth-icon">📞</span>
-        <input id="phone" name="phone" type="tel" placeholder="3001234567" value="{{ form.get('phone','') }}" />
+      <label class="auth-label" for="phone" data-testid="register-phone-label">Phone Number</label>
+      <div class="auth-input {% if field_errors.get('phone') %}has-error{% endif %}" data-testid="register-phone-wrapper">
+        <span class="auth-icon" data-testid="register-phone-icon">📞</span>
+        <input id="phone"
+               name="phone"
+               type="tel"
+               placeholder="3001234567"
+               value="{{ form.get('phone','') }}"
+               data-testid="register-phone" />
       </div>
-      {% if field_errors.get('phone') %}<div class="auth-help auth-help-error">{{ field_errors.get('phone') }}</div>{% endif %}
+      {% if field_errors.get('phone') %}<div class="auth-help auth-help-error" data-testid="register-phone-error">{{ field_errors.get('phone') }}</div>{% endif %}
 
-      <label class="auth-label" for="password">Password</label>
-      <div class="auth-input {% if field_errors.get('password') %}has-error{% endif %}">
-        <span class="auth-icon">🔒</span>
-        <input id="password" name="password" type="password" placeholder="••••••••" />
-        <span class="auth-eye">👁️</span>
+      <label class="auth-label" for="password" data-testid="register-password-label">Password</label>
+      <div class="auth-input {% if field_errors.get('password') %}has-error{% endif %}" data-testid="register-password-wrapper">
+        <span class="auth-icon" data-testid="register-password-icon">🔒</span>
+        <input id="password"
+               name="password"
+               type="password"
+               placeholder="••••••••"
+               data-testid="register-password" />
+        <span class="auth-eye" data-testid="register-password-eye">👁️</span>
       </div>
-      {% if field_errors.get('password') %}<div class="auth-help auth-help-error">{{ field_errors.get('password') }}</div>{% endif %}
+      {% if field_errors.get('password') %}<div class="auth-help auth-help-error" data-testid="register-password-error">{{ field_errors.get('password') }}</div>{% endif %}
 
-      <label class="auth-label" for="confirm_password">Confirm Password</label>
-      <div class="auth-input {% if field_errors.get('confirm_password') %}has-error{% endif %}">
-        <span class="auth-icon">🔒</span>
-        <input id="confirm_password" name="confirm_password" type="password" placeholder="••••••••" />
-        <span class="auth-eye">👁️</span>
+      <label class="auth-label" for="confirm_password" data-testid="register-confirm-password-label">Confirm Password</label>
+      <div class="auth-input {% if field_errors.get('confirm_password') %}has-error{% endif %}" data-testid="register-confirm-password-wrapper">
+        <span class="auth-icon" data-testid="register-confirm-password-icon">🔒</span>
+        <input id="confirm_password"
+               name="confirm_password"
+               type="password"
+               placeholder="••••••••"
+               data-testid="register-confirm-password" />
+        <span class="auth-eye" data-testid="register-confirm-password-eye">👁️</span>
       </div>
-      {% if field_errors.get('confirm_password') %}<div class="auth-help auth-help-error">{{ field_errors.get('confirm_password') }}</div>{% endif %}
+      {% if field_errors.get('confirm_password') %}<div class="auth-help auth-help-error" data-testid="register-confirm-password-error">{{ field_errors.get('confirm_password') }}</div>{% endif %}
 
-      <div class="auth-rules">
-        <div class="auth-rules-title">Password must:</div>
-        <ul class="auth-rules-list muted small">
-          <li>Be 8-64 characters long</li>
-          <li>Include uppercase, lowercase, number, and special character</li>
-          <li>Contain no spaces</li>
-          <li>Be different from your email</li>
+      <div class="auth-rules" data-testid="register-password-rules">
+        <div class="auth-rules-title" data-testid="register-password-rules-title">Password must:</div>
+        <ul class="auth-rules-list muted small" data-testid="register-password-rules-list">
+          <li data-testid="register-rule-length">Be 8-64 characters long</li>
+          <li data-testid="register-rule-complexity">Include uppercase, lowercase, number, and special character</li>
+          <li data-testid="register-rule-no-spaces">Contain no spaces</li>
+          <li data-testid="register-rule-different-email">Be different from your email</li>
         </ul>
       </div>
 
-      <label class="auth-check auth-check-terms">
-        <input type="checkbox" name="agree" {% if form.get('agree') %}checked{% endif %} />
-        <span>I agree to <a class="auth-link" href="#">Terms &amp; Privacy</a></span>
+      <label class="auth-check auth-check-terms" data-testid="register-agree-wrapper">
+        <input type="checkbox"
+               name="agree"
+               {% if form.get('agree') %}checked{% endif %}
+               data-testid="register-agree" />
+        <span data-testid="register-agree-text">I agree to <a class="auth-link" href="#" data-testid="register-terms-link">Terms &amp; Privacy</a></span>
       </label>
-      {% if field_errors.get('agree') %}<div class="auth-help auth-help-error">{{ field_errors.get('agree') }}</div>{% endif %}
+      {% if field_errors.get('agree') %}<div class="auth-help auth-help-error" data-testid="register-agree-error">{{ field_errors.get('agree') }}</div>{% endif %}
 
-      <button class="btn btn-primary btn-full" type="submit">Create Account</button>
+      <button class="btn btn-primary btn-full"
+              type="submit"
+              data-testid="register-submit">
+        Create Account
+      </button>
 
-      <div class="auth-bottom">
-        <div class="muted">
+      <div class="auth-bottom" data-testid="register-bottom">
+        <div class="muted" data-testid="register-signin-text">
           Already have an account?
-          <a class="auth-link" href="{{ url_for('login') }}">Sign in</a>
+          <a class="auth-link" href="{{ url_for('login') }}" data-testid="register-signin-link">Sign in</a>
         </div>
 
-        <div class="auth-legal muted small">
+        <div class="auth-legal muted small" data-testid="register-legal">
           Passwords are hashed and salted for your security.<br/>
           Enable MFA later in settings for enhanced protection.
         </div>

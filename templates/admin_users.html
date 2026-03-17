@@ -4,69 +4,72 @@
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='admin_users.css') }}">
 
-<section class="section">
-  <div class="container admin-wrap">
+<section class="section" data-testid="admin-users-page">
+  <div class="container admin-wrap" data-testid="admin-users-container">
 
-    <div class="admin-head">
-      <div>
-        <h1 class="admin-title">User Management</h1>
-        <div class="muted small">Manage, filter, and audit platform user accounts.</div>
+    <div class="admin-head" data-testid="admin-users-head">
+      <div data-testid="admin-users-head-text">
+        <h1 class="admin-title" data-testid="admin-users-title">User Management</h1>
+        <div class="muted small" data-testid="admin-users-subtitle">Manage, filter, and audit platform user accounts.</div>
       </div>
-
-
     </div>
 
     <!-- Filters -->
-    <div class="filters-card">
-      <form class="filters" method="get" action="{{ url_for('admin_users') }}">
-        <div class="filter-block">
-          <div class="filter-label">Search Users</div>
-          <div class="filter-input">
-            <input name="q" value="{{ filters.q }}" placeholder="Search by name or email..." />
+    <div class="filters-card" data-testid="admin-filters-card">
+      <form class="filters"
+            method="get"
+            action="{{ url_for('admin_users') }}"
+            data-testid="admin-filters-form">
+        <div class="filter-block" data-testid="filter-block-search">
+          <div class="filter-label" data-testid="filter-label-search">Search Users</div>
+          <div class="filter-input" data-testid="filter-input-wrapper-search">
+            <input name="q"
+                   value="{{ filters.q }}"
+                   placeholder="Search by name or email..."
+                   data-testid="filter-search-users" />
           </div>
         </div>
 
-        <div class="filter-block">
-          <div class="filter-label">Role</div>
-          <select name="role" class="filter-select">
+        <div class="filter-block" data-testid="filter-block-role">
+          <div class="filter-label" data-testid="filter-label-role">Role</div>
+          <select name="role" class="filter-select" data-testid="filter-role">
             <option value="all" {% if filters.role == "all" %}selected{% endif %}>All Roles</option>
             <option value="user" {% if filters.role == "user" %}selected{% endif %}>User</option>
             <option value="admin" {% if filters.role == "admin" %}selected{% endif %}>Admin</option>
           </select>
         </div>
 
-        <div class="filter-block">
-          <div class="filter-label">Status</div>
-          <select name="status" class="filter-select">
+        <div class="filter-block" data-testid="filter-block-status">
+          <div class="filter-label" data-testid="filter-label-status">Status</div>
+          <select name="status" class="filter-select" data-testid="filter-status">
             <option value="all" {% if filters.status == "all" %}selected{% endif %}>All Status</option>
             <option value="active" {% if filters.status == "active" %}selected{% endif %}>Active</option>
             <option value="disabled" {% if filters.status == "disabled" %}selected{% endif %}>Disabled</option>
           </select>
         </div>
 
-        <div class="filter-block">
-          <div class="filter-label">Lockout</div>
-          <select name="lockout" class="filter-select">
+        <div class="filter-block" data-testid="filter-block-lockout">
+          <div class="filter-label" data-testid="filter-label-lockout">Lockout</div>
+          <select name="lockout" class="filter-select" data-testid="filter-lockout">
             <option value="all" {% if filters.lockout == "all" %}selected{% endif %}>All Types</option>
             <option value="locked" {% if filters.lockout == "locked" %}selected{% endif %}>Locked</option>
             <option value="not_locked" {% if filters.lockout == "not_locked" %}selected{% endif %}>Not locked</option>
           </select>
         </div>
 
-        <div class="filter-actions">
-          <button class="btn btn-ghost" type="submit">Filter</button>
+        <div class="filter-actions" data-testid="filter-actions">
+          <button class="btn btn-ghost" type="submit" data-testid="filter-submit">Filter</button>
         </div>
       </form>
     </div>
 
-   
     <!-- Users table -->
-    <div class="table-card">
-      <div class="table-head">
-        <div class="muted small">Showing 1 to {{ total }} of {{ total }} results</div>
+    <div class="table-card" data-testid="admin-table-card">
+      <div class="table-head" data-testid="admin-table-head">
+        <div class="muted small" data-testid="admin-results-count">Showing 1 to {{ total }} of {{ total }} results</div>
       </div>
 
-      <table class="users-table">
+      <table class="users-table" data-testid="admin-users-table">
         <thead>
           <tr>
             <th>User</th>
@@ -79,51 +82,65 @@
         </thead>
         <tbody>
           {% for u in users %}
-          <tr>
-            <td>
-              <div class="user-cell">
-                <div class="avatar">{{ (u.full_name or "U")[:1]|upper }}</div>
-                <div>
-                  <div class="user-name">{{ u.full_name }}</div>
-                  <div class="muted tiny">ID: {{ u.id }}</div>
+          <tr data-testid="admin-user-row-{{ u.id }}">
+            <td data-testid="admin-user-cell-{{ u.id }}">
+              <div class="user-cell" data-testid="admin-user-info-{{ u.id }}">
+                <div class="avatar" data-testid="admin-user-avatar-{{ u.id }}">{{ (u.full_name or "U")[:1]|upper }}</div>
+                <div data-testid="admin-user-meta-{{ u.id }}">
+                  <div class="user-name" data-testid="admin-user-name-{{ u.id }}">{{ u.full_name }}</div>
+                  <div class="muted tiny" data-testid="admin-user-id-{{ u.id }}">ID: {{ u.id }}</div>
                 </div>
               </div>
             </td>
 
-            <td class="muted">{{ u.email }}</td>
+            <td class="muted" data-testid="admin-user-email-{{ u.id }}">{{ u.email }}</td>
 
-            <td>
-              <form method="post" action="{{ url_for('admin_change_role', user_id=u.id) }}">
-                <select name="role" class="role-select" onchange="this.form.submit()">
+            <td data-testid="admin-user-role-cell-{{ u.id }}">
+              <form 
+                    data-testid="admin-change-role-form-{{ u.id }}">
+                <select name="role"
+                        class="role-select"
+                        data-testid="admin-role-select-{{ u.id }}">
                   <option value="user" {% if u.role|lower == "user" %}selected{% endif %}>User</option>
                   <option value="admin" {% if u.role|lower == "admin" %}selected{% endif %}>Admin</option>
                 </select>
               </form>
             </td>
 
-            <td>
+            <td data-testid="admin-user-status-cell-{{ u.id }}">
               {% if u.status|lower == "active" %}
-                <span class="badge badge-green">Active</span>
+                <span class="badge badge-green" data-testid="admin-user-status-{{ u.id }}">Active</span>
               {% else %}
-                <span class="badge badge-red">Disabled</span>
+                <span class="badge badge-red" data-testid="admin-user-status-{{ u.id }}">Disabled</span>
               {% endif %}
             </td>
 
-            <td class="muted">
+            <td class="muted" data-testid="admin-user-lockout-cell-{{ u.id }}">
               {% if u.locked_until %}
-                <span class="badge badge-gray">Locked</span>
-                <div class="tiny muted">Until {{ u.locked_until }}</div>
+                <span class="badge badge-gray" data-testid="admin-user-lockout-status-{{ u.id }}">Locked</span>
+                <div class="tiny muted" data-testid="admin-user-lockout-until-{{ u.id }}">Until {{ u.locked_until }}</div>
               {% else %}
-                —
+                <span data-testid="admin-user-lockout-status-{{ u.id }}">—</span>
               {% endif %}
             </td>
 
-            <td class="right">
-              <form method="post" action="{{ url_for('admin_toggle_user', user_id=u.id) }}" style="display:inline;">
+            <td class="right" data-testid="admin-user-actions-{{ u.id }}">
+              <form method="post"
+                    action="{{ url_for('admin_toggle_user', user_id=u.id) }}"
+                    style="display:inline;"
+                    data-testid="admin-toggle-user-form-{{ u.id }}">
                 {% if u.status|lower == "active" %}
-                  <button class="btn btn-danger-outline" type="submit">Disable</button>
+                  <button class="btn btn-danger-outline"
+                          type="submit"
+                          data-testid="admin-toggle-user-{{ u.id }}">
+                    Disable
+                  </button>
                 {% else %}
-                  <button class="btn btn-ghost" type="submit">Enable</button>
+                  <button class="btn btn-ghost"
+                          type="submit"
+                          data-testid="admin-toggle-user-{{ u.id }}">
+                    Enable
+                  </button>
                 {% endif %}
               </form>
             </td>

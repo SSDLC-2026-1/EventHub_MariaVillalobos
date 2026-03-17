@@ -33,7 +33,7 @@
       "salt": "Cq8iQQQkguS9J3P2uqn86A==",
       "hash": "xOgkDrUN+4Qx9QhIOcqUCRW7t0LxrPqH37Vt1gK5rJE="
     },
-    "role": "user",
+    "role": "admin",
     "status": "active",
     "locked_until": ""
   },
@@ -61,15 +61,53 @@
     "full_name": "Sofia",
     "email": "sofia.doe@gmail.com",
     "phone_encrypted": {
-      "ciphertext": "b7068c5d82fbb96e97a5",
-      "nonce": "dff054efccf5f66762e16454f24245b9",
-      "tag": "4d1c6893d67fc9982faf2a5d24abbd91"
+      "ciphertext": "52fb37f11cbf8c988aaa",
+      "nonce": "e609a048bd12d2652f5f736983153f0f",
+      "tag": "d9785a0fb3c85cf25e7b1d8c9af2f630"
     },
     "password_data": {
       "algorithm": "pbkdf2_sha256",
       "iterations": 310000,
-      "salt": "v53TCA1miVVmUMWsQ2y9Ww==",
-      "hash": "ug0qWFcJw1yYXxQGjHjyMEKdcaZSh55tx19IQvcT42s="
+      "salt": "7yX9VHnUJVzOIQESs6ZpLg==",
+      "hash": "9XzjWfB+dqAPnwWdIZ0HhiaJC9GPglT+86IMxnhe3Tk="
+    },
+    "role": "user",
+    "status": "active",
+    "locked_until": ""
+  },
+  {
+    "id": 5,
+    "full_name": "selenium admin",
+    "email": "admin@eventhub.com",
+    "phone_encrypted": {
+      "ciphertext": "1d11b8b9da45965070f6",
+      "nonce": "f1b7cb1da4338b17d1e3d63d89b12c51",
+      "tag": "f63601b4ca5bf43b7562047725c0565f"
+    },
+    "password_data": {
+      "algorithm": "pbkdf2_sha256",
+      "iterations": 310000,
+      "salt": "kw0CZ9sCDCdKNNlBBnECmA==",
+      "hash": "Xsr9QYC92qwC/vYtcZruGu4nMaDajXveiKgjOpVonBI="
+    },
+    "role": "admin",
+    "status": "active",
+    "locked_until": ""
+  },
+  {
+    "id": 6,
+    "full_name": "no admin",
+    "email": "noadmin@eventhub.com",
+    "phone_encrypted": {
+      "ciphertext": "a297f7a5689a3104c8d2",
+      "nonce": "be25692155dcf404d00013e2d9c5bbc7",
+      "tag": "09c2abd245bb580c250af19bf6dbdb97"
+    },
+    "password_data": {
+      "algorithm": "pbkdf2_sha256",
+      "iterations": 310000,
+      "salt": "TdfkWMb45EEDweq8wQVuBw==",
+      "hash": "gm/SqAXi8k4DB3DssitJSp7yNs7tmVdwJLm5TQKLqdU="
     },
     "role": "user",
     "status": "active",
