@@ -1,0 +1,73 @@
+name: EventHub Structure
+on:
+  pull_request:
+    types: [opened]
+permissions:
+  pull-requests: write
+jobs:
+  validate:
+    name: EventHub Structure Validation 
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Validate required files and directories
+        run: |
+          echo "Validating required files and directories..."
+          REQUIRED_FILES=(
+            "app.py"
+            "requirements.txt"
+            "data/users.json"
+            "data/events.json"
+            "data/orders.json"
+          )
+          REQUIRED_DIRS=(
+            "templates"
+            "static"
+            "data"
+          )
+          for file in "${REQUIRED_FILES[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "ERROR: Missing file -> $file"
+              exit 1
+            else
+              echo "OK: Found file -> $file"
+            fi
+          done
+          for dir in "${REQUIRED_DIRS[@]}"; do
+            if [ ! -d "$dir" ]; then
+              echo "ERROR: Missing directory -> $dir"
+              exit 1
+            else
+              echo "OK: Found directory -> $dir"
+            fi
+          done
+      - name: Validate JSON structure
+        run: |
+          echo "Validating JSON structure..."
+          python3 <<EOF
+          import json
+          import sys
+          FILES = [
+          "data/users.json",
+          "data/events.json",
+          "data/orders.json"
+          ]
+          for file in FILES:
+            print(f"Checking {file}...")
+            try:
+                with open(file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            except Exception as e:
+                print(f"ERROR: Invalid JSON in {file} -> {e}")
+                sys.exit(1)
+            if not isinstance(data, list):
+                print(f"ERROR: {file} must contain a list")
+                sys.exit(1)
+            for i, item in enumerate(data):
+                if not isinstance(item, dict):
+                    print(f"ERROR: Element {i} in {file} is not a dictionary")
+                    sys.exit(1)
+          print(f"OK: {file} has valid structure")
+          print("All JSON files are valid")
+          EOF
