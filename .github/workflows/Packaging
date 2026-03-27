@@ -1,0 +1,63 @@
+name: Modulo Packaging Workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      module:
+        description: "Select module to package"
+        required: true
+        default: "full"
+        type: choice
+        options:
+          - frontend
+          - backend
+          - data
+          - full
+
+jobs:
+  build-package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create output directory
+        run: mkdir output
+
+      - name: Copy selected module files
+        run: |
+          case "${{ github.event.inputs.module }}" in
+            frontend)
+              echo "Packaging frontend module..."
+              cp -r templates output/ 2>/dev/null || true
+              cp -r static output/ 2>/dev/null || true
+              ;;
+            backend)
+              echo "Packaging backend module..."
+              cp -r src output/ 2>/dev/null || true
+              cp *.py output/ 2>/dev/null || true
+              ;;
+            data)
+              echo "Packaging data module..."
+              cp -r data output/
+              ;;
+            full)
+              echo "Packaging all modules..."
+              cp -r src templates static data output/ 2>/dev/null || true
+              cp *.py output/ 2>/dev/null || true
+              ;;
+            *)
+              echo "Invalid module selection"
+              exit 1
+              ;;
+          esac
+
+      - name: Create compressed archive
+        run: zip -r resultado.zip output/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-result
+          path: resultado.zip
