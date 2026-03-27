@@ -1,0 +1,86 @@
+name: Validar Estructura
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  validate-structure:
+    name: Verificar archivos, carpetas y JSON
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Verificar existencia de app.py
+        run: |
+          if [ ! -f "app.py" ]; then
+            echo "No se encontró app.py"
+            exit 1
+          fi
+          echo "Se encontró app.py"
+
+      - name: Verificar existencia de requirements.txt
+        run: |
+          if [ ! -f "requirements.txt" ]; then
+            echo "No se encontró requirements.txt"
+            exit 1
+          fi
+          echo "Se encontró requirements.txt"
+
+      - name: Verificar existencia de carpetas clave
+        run: |
+          FAILED=0
+
+          for FOLDER in templates static data; do
+            if [ ! -d "$FOLDER" ]; then
+              echo "No se encontró la carpeta '$FOLDER/'"
+              FAILED=1
+            else
+              echo "Se encontró la carpeta '$FOLDER/'"
+            fi
+          done
+
+          if [ "$FAILED" -eq 1 ]; then
+            exit 1
+          fi
+
+      - name: Verificar formato JSON de data/users.json
+        run: |
+          if [ ! -f "data/users.json" ]; then
+            echo "No se encontró data/users.json"
+            exit 1
+          fi
+          if ! python3 -m json.tool data/users.json > /dev/null 2>&1; then
+            echo "formato JSON inválido"
+            python3 -m json.tool data/users.json  
+            exit 1
+          fi
+          echo "El JSON válido"
+
+      - name: Verificar formato JSON de data/events.json
+        run: |
+          if [ ! -f "data/events.json" ]; then
+            echo " No se encontró data/events.json"
+            exit 1
+          fi
+          if ! python3 -m json.tool data/events.json > /dev/null 2>&1; then
+            echo "tiene formato JSON inválido"
+            python3 -m json.tool data/events.json
+            exit 1
+          fi
+          echo "El JSON válido"
+
+      - name: Verificar formato JSON de data/orders.json
+        run: |
+          if [ ! -f "data/orders.json" ]; then
+            echo " No se encontró data/orders.json"
+            exit 1
+          fi
+          if ! python3 -m json.tool data/orders.json > /dev/null 2>&1; then
+            echo "Tiene formato JSON inválido"
+            python3 -m json.tool data/orders.json
+            exit 1
+          fi
+          echo "El JSON válido"
