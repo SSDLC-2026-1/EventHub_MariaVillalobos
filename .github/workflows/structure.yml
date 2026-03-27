@@ -3,6 +3,7 @@ name: Validar Estructura
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+  workflow_dispatch:    # <-- Agrega esto
 
 jobs:
   validate-structure:
@@ -53,29 +54,29 @@ jobs:
             exit 1
           fi
           if ! python3 -m json.tool data/users.json > /dev/null 2>&1; then
-            echo "formato JSON inválido"
+            echo " formato JSON inválido"
             python3 -m json.tool data/users.json  
             exit 1
           fi
-          echo "El JSON válido"
+          echo "JSON válido"
 
       - name: Verificar formato JSON de data/events.json
         run: |
           if [ ! -f "data/events.json" ]; then
-            echo " No se encontró data/events.json"
+            echo "No se encontró data/events.json"
             exit 1
           fi
           if ! python3 -m json.tool data/events.json > /dev/null 2>&1; then
-            echo "tiene formato JSON inválido"
+            echo "Tiene formato JSON inválido"
             python3 -m json.tool data/events.json
             exit 1
           fi
-          echo "El JSON válido"
+          echo "JSON válido"
 
       - name: Verificar formato JSON de data/orders.json
         run: |
           if [ ! -f "data/orders.json" ]; then
-            echo " No se encontró data/orders.json"
+            echo "No se encontró data/orders.json"
             exit 1
           fi
           if ! python3 -m json.tool data/orders.json > /dev/null 2>&1; then
@@ -83,4 +84,4 @@ jobs:
             python3 -m json.tool data/orders.json
             exit 1
           fi
-          echo "El JSON válido"
+          echo "✅ JSON válido"
