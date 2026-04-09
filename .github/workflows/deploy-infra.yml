@@ -189,11 +189,6 @@ jobs:
         run: |
           scp -o StrictHostKeyChecking=no -i eventhub_key -r . ${SSH_USER}@${PUBLIC_IP}:/opt/eventhub
 
-
-      - name: Copy application files to EC2
-        run: |
-          scp -o StrictHostKeyChecking=no -i eventhub_key -r . ${SSH_USER}@${PUBLIC_IP}:/opt/eventhub
-
       - name: Install dependencies and start app with Gunicorn
         run: |
             ssh -o StrictHostKeyChecking=no -i eventhub_key ${SSH_USER}@${PUBLIC_IP} << 'EOF'
