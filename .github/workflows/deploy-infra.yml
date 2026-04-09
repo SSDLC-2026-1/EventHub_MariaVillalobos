@@ -41,11 +41,58 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
             fi
 
-      - name: Generate temporary SSH key pair
+      - name: Ensure SSH key pair exists in AWS Secrets Manager
         run: |
-          ssh-keygen -t rsa -b 4096 -f eventhub_key -N ""
+          PRIVATE_SECRET_NAME="eventhub/ssh/private-key"
+          PUBLIC_SECRET_NAME="eventhub/ssh/public-key"
+
+          PRIVATE_EXISTS=true
+          PUBLIC_EXISTS=true
+
+          aws secretsmanager describe-secret --secret-id "$PRIVATE_SECRET_NAME" >/dev/null 2>&1 || PRIVATE_EXISTS=false
+          aws secretsmanager describe-secret --secret-id "$PUBLIC_SECRET_NAME" >/dev/null 2>&1 || PUBLIC_EXISTS=false
+
+          if [ "$PRIVATE_EXISTS" = false ] || [ "$PUBLIC_EXISTS" = false ]; then
+            echo "SSH secrets not found. Generating new key pair..."
+
+            ssh-keygen -t rsa -b 4096 -f eventhub_key -N ""
+
+            PRIVATE_KEY_CONTENT=$(cat eventhub_key)
+            PUBLIC_KEY_CONTENT=$(cat eventhub_key.pub)
+
+            aws secretsmanager create-secret \
+              --name "$PRIVATE_SECRET_NAME" \
+              --secret-string "$PRIVATE_KEY_CONTENT" \
+              >/dev/null 2>&1 || \
+            aws secretsmanager update-secret \
+              --secret-id "$PRIVATE_SECRET_NAME" \
+              --secret-string "$PRIVATE_KEY_CONTENT"
+
+            aws secretsmanager create-secret \
+              --name "$PUBLIC_SECRET_NAME" \
+              --secret-string "$PUBLIC_KEY_CONTENT" \
+              >/dev/null 2>&1 || \
+            aws secretsmanager update-secret \
+              --secret-id "$PUBLIC_SECRET_NAME" \
+              --secret-string "$PUBLIC_KEY_CONTENT"
+          else
+            echo "SSH secrets already exist in Secrets Manager"
+          fi
+
+      - name: Retrieve SSH keys from AWS Secrets Manager
+        run: |
+          aws secretsmanager get-secret-value \
+            --secret-id eventhub/ssh/private-key \
+            --query SecretString \
+            --output text > eventhub_key
+
+          chmod 600 eventhub_key
+
           echo "PUBLIC_KEY<<EOF" >> $GITHUB_ENV
-          cat eventhub_key.pub >> $GITHUB_ENV
+          aws secretsmanager get-secret-value \
+            --secret-id eventhub/ssh/public-key \
+            --query SecretString \
+            --output text >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
       - name: Terraform Init (bootstrap)
