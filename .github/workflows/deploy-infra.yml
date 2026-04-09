@@ -1,4 +1,4 @@
-name: Deploy EventHub Infrastructure
+name: Deploy EventHub Infrastructure and App
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ permissions:
   contents: read
 
 jobs:
-  deploy-infra:
+  deploy:
     runs-on: ubuntu-latest
 
     env:
@@ -57,25 +57,46 @@ jobs:
         run: |
           echo "INSTANCE_ID=$(terraform output -raw instance_id)" >> $GITHUB_ENV
           echo "PUBLIC_IP=$(terraform output -raw public_ip)" >> $GITHUB_ENV
-          echo "APPLICATION_URL=$(terraform output -raw application_url)" >> $GITHUB_ENV
 
-      - name: Show outputs
+      - name: Show infrastructure outputs
         run: |
           echo "Instance ID: $INSTANCE_ID"
           echo "Public IP: $PUBLIC_IP"
-          echo "Application URL: $APPLICATION_URL"
 
-      - name: Save connection info
+      - name: Wait for SSH to become available
         run: |
-          cat > deployment-info.txt <<EOF
-          Instance ID: $INSTANCE_ID
-          Public IP: $PUBLIC_IP
-          Application URL: $APPLICATION_URL
-          SSH User: ec2-user
+          for i in {1..30}; do
+            if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i eventhub_key ec2-user@$PUBLIC_IP "echo SSH ready"; then
+              echo "SSH is ready"
+              exit 0
+            fi
+            echo "Waiting for SSH..."
+            sleep 10
+          done
+          echo "SSH did not become available in time"
+          exit 1
+
+      - name: Copy application files to EC2
+        run: |
+          scp -o StrictHostKeyChecking=no -i eventhub_key -r . ec2-user@$PUBLIC_IP:/opt/eventhub
+
+      - name: Install dependencies and start app
+        run: |
+          ssh -o StrictHostKeyChecking=no -i eventhub_key ec2-user@$PUBLIC_IP << 'EOF'
+            cd /opt/eventhub
+
+            python3 -m pip install --upgrade pip
+            python3 -m pip install flask
+            python3 -m pip install pycryptodome
+
+            pkill -f "python3 app.py" || true
+            nohup python3 app.py > app.log 2>&1 &
           EOF
 
-      - name: Upload deployment info artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: eventhub-deployment-info
-          path: deployment-info.txt
+      - name: Verify app process
+        run: |
+          ssh -o StrictHostKeyChecking=no -i eventhub_key ec2-user@$PUBLIC_IP "ps -ef | grep app.py | grep -v grep"
+
+      - name: Show application URL
+        run: |
+          echo "EventHub should be reachable at: http://$PUBLIC_IP:5000"
