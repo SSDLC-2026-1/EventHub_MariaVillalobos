@@ -13,6 +13,7 @@ jobs:
     env:
       AWS_REGION: us-east-1
       TF_IN_AUTOMATION: true
+      TF_DIR: ./Infra/terraform
 
     steps:
       - name: Checkout repository
@@ -36,19 +37,23 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
 
       - name: Terraform Init
+        working-directory: ${{ env.TF_DIR }}
         run: terraform init
 
       - name: Terraform Validate
+        working-directory: ${{ env.TF_DIR }}
         run: terraform validate
 
       - name: Terraform Plan
+        working-directory: ${{ env.TF_DIR }}
         run: terraform plan -var="public_key=${PUBLIC_KEY}" -out=tfplan
 
       - name: Terraform Apply
+        working-directory: ${{ env.TF_DIR }}
         run: terraform apply -auto-approve tfplan
 
       - name: Capture Terraform outputs
-        id: tf_outputs
+        working-directory: ${{ env.TF_DIR }}
         run: |
           echo "INSTANCE_ID=$(terraform output -raw instance_id)" >> $GITHUB_ENV
           echo "PUBLIC_IP=$(terraform output -raw public_ip)" >> $GITHUB_ENV
