@@ -184,11 +184,20 @@ jobs:
             sudo mkdir -p /opt/eventhub
             sudo chown -R ec2-user:ec2-user /opt/eventhub
           EOF
-
       - name: Copy application files to EC2
         run: |
-          scp -o StrictHostKeyChecking=no -i eventhub_key -r . ${SSH_USER}@${PUBLIC_IP}:/opt/eventhub
-
+            rsync -avz \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude '.terraform' \
+            --exclude '.terraform.lock.hcl' \
+            --exclude 'Infra' \
+            --exclude 'infra' \
+            --exclude 'eventhub_key' \
+            --exclude '*.tfstate' \
+            --exclude '*.tfplan' \
+            -e "ssh -o StrictHostKeyChecking=no -i eventhub_key" \
+            ./ ${SSH_USER}@${PUBLIC_IP}:/opt/eventhub/
       - name: Install dependencies and start app with Gunicorn
         run: |
             ssh -o StrictHostKeyChecking=no -i eventhub_key ${SSH_USER}@${PUBLIC_IP} << 'EOF'
