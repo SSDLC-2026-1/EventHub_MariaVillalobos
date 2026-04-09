@@ -131,20 +131,20 @@ jobs:
         run: |
           scp -o StrictHostKeyChecking=no -i eventhub_key -r . ${SSH_USER}@${PUBLIC_IP}:/opt/eventhub
 
-      - name: Install dependencies and start app
+      - name: Install dependencies and start app with Gunicorn
         run: |
-          ssh -o StrictHostKeyChecking=no -i eventhub_key ${SSH_USER}@${PUBLIC_IP} << 'EOF'
+            ssh -o StrictHostKeyChecking=no -i eventhub_key ${SSH_USER}@${PUBLIC_IP} << 'EOF'
             cd /opt/eventhub
             python3 -m pip install --upgrade pip
-            python3 -m pip install flask pycryptodome
-            pkill -f "python3 app.py" || true
-            nohup python3 app.py > app.log 2>&1 &
-          EOF
+            python3 -m pip install flask pycryptodome gunicorn
+
+            pkill -f gunicorn || true
+            nohup gunicorn --bind 0.0.0.0:5000 app:app > app.log 2>&1 &
+            EOF
 
       - name: Verify app process
         run: |
-          ssh -o StrictHostKeyChecking=no -i eventhub_key ${SSH_USER}@${PUBLIC_IP} "ps -ef | grep app.py | grep -v grep"
-
+            ssh -o StrictHostKeyChecking=no -i eventhub_key ${SSH_USER}@${PUBLIC_IP} "ps -ef | grep gunicorn | grep -v grep"
       - name: Save deployment info
         run: |
           cat > deployment-info.txt <<EOF
