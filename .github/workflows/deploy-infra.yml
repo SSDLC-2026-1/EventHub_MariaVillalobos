@@ -49,8 +49,8 @@ jobs:
           PRIVATE_EXISTS=true
           PUBLIC_EXISTS=true
 
-          aws secretsmanager describe-secret --secret-id "$PRIVATE_SECRET_NAME" >/dev/null 2>&1 || PRIVATE_EXISTS=false
-          aws secretsmanager describe-secret --secret-id "$PUBLIC_SECRET_NAME" >/dev/null 2>&1 || PUBLIC_EXISTS=false
+          aws secretsmanager describe-secret --secret-id "$PRIVATE_SECRET_NAME" --region $AWS_REGION \>/dev/null 2>&1 || PRIVATE_EXISTS=false
+          aws secretsmanager describe-secret --secret-id "$PUBLIC_SECRET_NAME" --region $AWS_REGION >/dev/null 2>&1 || PUBLIC_EXISTS=false
 
           if [ "$PRIVATE_EXISTS" = false ] || [ "$PUBLIC_EXISTS" = false ]; then
             echo "SSH secrets not found. Generating new key pair..."
@@ -63,17 +63,21 @@ jobs:
             aws secretsmanager create-secret \
               --name "$PRIVATE_SECRET_NAME" \
               --secret-string "$PRIVATE_KEY_CONTENT" \
+              --region $AWS_REGION \
               >/dev/null 2>&1 || \
             aws secretsmanager update-secret \
               --secret-id "$PRIVATE_SECRET_NAME" \
+              --region $AWS_REGION \
               --secret-string "$PRIVATE_KEY_CONTENT"
 
             aws secretsmanager create-secret \
               --name "$PUBLIC_SECRET_NAME" \
               --secret-string "$PUBLIC_KEY_CONTENT" \
+              --region $AWS_REGION \
               >/dev/null 2>&1 || \
             aws secretsmanager update-secret \
               --secret-id "$PUBLIC_SECRET_NAME" \
+              --region $AWS_REGION \
               --secret-string "$PUBLIC_KEY_CONTENT"
           else
             echo "SSH secrets already exist in Secrets Manager"
@@ -84,6 +88,7 @@ jobs:
           aws secretsmanager get-secret-value \
             --secret-id eventhub/ssh/private-key \
             --query SecretString \
+            --region $AWS_REGION \
             --output text > eventhub_key
 
           chmod 600 eventhub_key
@@ -92,6 +97,7 @@ jobs:
           aws secretsmanager get-secret-value \
             --secret-id eventhub/ssh/public-key \
             --query SecretString \
+            --region $AWS_REGION \
             --output text >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
