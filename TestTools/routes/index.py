@@ -8,22 +8,6 @@ index_blueprint = Blueprint('index', __name__)
 USERS_FILE = "users.json"
 
 
-def inicializar_archivo():
-    if not os.path.exists(USERS_FILE):
-        with open(USERS_FILE, "w", encoding="utf-8") as f:
-            json.dump([], f, ensure_ascii=False, indent=4)
-
-
-def leer_usuarios():
-    inicializar_archivo()
-    with open(USERS_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def guardar_usuarios(users):
-    with open(USERS_FILE, "w", encoding="utf-8") as f:
-        json.dump(users, f, ensure_ascii=False, indent=4)
-
 
 @index_blueprint.route('/', methods=["GET"])
 def index():
@@ -32,54 +16,19 @@ def index():
 
 @index_blueprint.route('/users', methods=["GET"])
 def users():
-    users = leer_usuarios()
-    return jsonify(users), 200
-
-
-@index_blueprint.route('/users', methods=["POST"])
-def crear_usuario():
-    data = request.get_json()
-
-    if not data:
-        return jsonify({"error": "No se enviaron datos en formato JSON"}), 400
-
-    nombre = data.get("nombre")
-
-    if not nombre:
-        return jsonify({"error": "El campo 'nombre' es obligatorio"}), 400
-
-    users = leer_usuarios()
-
-    nuevo_id = 1
-    if users:
-        nuevo_id = max(user["id"] for user in users) + 1
-
-    nuevo_usuario = {
-        "id": nuevo_id,
-        "nombre": nombre
+    users = {
+        'id':1, 'nombre': 'Juan',
+        'id':2, 'nombre': 'Maria'
     }
+    return jsonify(users)
 
-    users.append(nuevo_usuario)
-    guardar_usuarios(users)
-
+@index_blueprint.route('/data', methods=["POST"])
+def data():
+    data = request.json
     return jsonify({
-        "message": "Usuario creado correctamente",
-        "user": nuevo_usuario
-    }), 201
-
-
-@index_blueprint.route('/users/<int:user_id>', methods=["GET"])
-def get_user(user_id):
-    users = leer_usuarios()
-
-    usuario = next((user for user in users if user["id"] == user_id), None)
-
-    if not usuario:
-        return jsonify({
-            "error": "Usuario no encontrado"
-        }), 404
-
-    return jsonify(usuario), 200
+        'message':"datos recibidos",
+        "data": data
+    })
 
 
 HTTP_STATUS_INFO = {

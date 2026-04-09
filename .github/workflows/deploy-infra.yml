@@ -1,0 +1,76 @@
+name: Deploy EventHub Infrastructure
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-infra:
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: us-east-1
+      TF_IN_AUTOMATION: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Generate temporary SSH key pair
+        run: |
+          ssh-keygen -t rsa -b 4096 -f eventhub_key -N ""
+          echo "PUBLIC_KEY<<EOF" >> $GITHUB_ENV
+          cat eventhub_key.pub >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: terraform plan -var="public_key=${PUBLIC_KEY}" -out=tfplan
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
+
+      - name: Capture Terraform outputs
+        id: tf_outputs
+        run: |
+          echo "INSTANCE_ID=$(terraform output -raw instance_id)" >> $GITHUB_ENV
+          echo "PUBLIC_IP=$(terraform output -raw public_ip)" >> $GITHUB_ENV
+          echo "APPLICATION_URL=$(terraform output -raw application_url)" >> $GITHUB_ENV
+
+      - name: Show outputs
+        run: |
+          echo "Instance ID: $INSTANCE_ID"
+          echo "Public IP: $PUBLIC_IP"
+          echo "Application URL: $APPLICATION_URL"
+
+      - name: Save connection info
+        run: |
+          cat > deployment-info.txt <<EOF
+          Instance ID: $INSTANCE_ID
+          Public IP: $PUBLIC_IP
+          Application URL: $APPLICATION_URL
+          SSH User: ec2-user
+          EOF
+
+      - name: Upload deployment info artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: eventhub-deployment-info
+          path: deployment-info.txt

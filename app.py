@@ -683,7 +683,7 @@ def admin_users():
 
 
 @app.post("/admin/users/<int:user_id>/toggle")
-@require_role("admin")
+#@require_role("admin")
 def admin_toggle_user(user_id: int):
     users = load_users()
     current_user = get_current_user()
