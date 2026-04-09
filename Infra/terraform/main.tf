@@ -110,13 +110,13 @@ resource "aws_instance" "main" {
   associate_public_ip_address = true
 
   user_data = <<-EOF
-              #!/bin/bash
-              yum update -y
-              yum install -y git python3 python3-pip
+            #!/bin/bash
+            yum update -y
+            yum install -y git python3 python3-pip
 
-              mkdir -p /opt/eventhub
-              chown -R ec2-user:ec2-user /opt/eventhub
-              EOF
+            mkdir -p /opt/eventhub
+            chown -R ec2-user:ec2-user /opt/eventhub
+            EOF
 
   tags = {
     Name        = "eventhub"
