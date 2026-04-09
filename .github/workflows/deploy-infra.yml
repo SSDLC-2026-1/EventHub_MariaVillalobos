@@ -209,9 +209,21 @@ jobs:
             nohup gunicorn --bind 0.0.0.0:5000 app:app > app.log 2>&1 &
             EOF
 
+      - name: Verify app locally on EC2
+        run: |
+            ssh -o StrictHostKeyChecking=no -i eventhub_key ${SSH_USER}@${PUBLIC_IP} << 'EOF'
+            curl -I http://127.0.0.1:5000 || true
+            curl -I http://localhost:5000 || true
+            EOF
+
       - name: Verify app process
         run: |
             ssh -o StrictHostKeyChecking=no -i eventhub_key ${SSH_USER}@${PUBLIC_IP} "ps -ef | grep gunicorn | grep -v grep"
+      
+      - name: Show working directory contents
+        run: |
+            ssh -o StrictHostKeyChecking=no -i eventhub_key ${SSH_USER}@${PUBLIC_IP} "ls -la /opt/eventhub"
+      
       - name: Save deployment info
         run: |
           cat > deployment-info.txt <<EOF
