@@ -1,14 +1,66 @@
 {% extends "base.html" %}
-{% set title = "Dashboard - EventHub" %}
+{% block title %}Dashboard · EventHub{% endblock %}
 
 {% block content %}
-<section class="section">
+<section class="section" data-testid="dashboard-page">
   <div class="container">
-    <h1>Welcome back, {{ user_name }}</h1>
-    <p class="muted">This is a simple dashboard placeholder.</p>
-  </div>
-  {% if paid %}
-  <div class="auth-banner auth-banner-ok">Payment completed (demo). Order stored in orders.json.</div>
+    <div class="panel" data-testid="dashboard-header-panel">
+      <span class="eyebrow">User dashboard</span>
+      <h1 data-testid="dashboard-title">Welcome back, {{ user_name }}</h1>
+      <p class="muted" data-testid="dashboard-subtitle">
+        Review your recent purchases and continue exploring events.
+      </p>
+    </div>
+
+    {% if paid %}
+      <div class="auth-banner auth-banner-ok" style="margin-top: 18px;" data-testid="payment-success-banner">
+        Payment completed successfully. Your order was stored securely.
+      </div>
     {% endif %}
+
+    <div class="dashboard-actions" style="margin: 18px 0 0 0;" data-testid="dashboard-actions">
+      <a class="btn btn-primary" href="{{ url_for('index') }}" data-testid="dashboard-browse-events">
+        Browse Events
+      </a>
+      <a class="btn btn-ghost" href="{{ url_for('profile') }}" data-testid="dashboard-go-profile">
+        My Profile
+      </a>
+    </div>
+
+    <div class="panel" style="margin-top: 20px;" data-testid="my-tickets-panel">
+      <h3 data-testid="my-tickets-title">My Tickets</h3>
+
+      {% if orders %}
+        <table class="users-table" data-testid="tickets-table">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Event</th>
+              <th>Qty</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for o in orders %}
+              <tr data-testid="ticket-row-{{ o.id }}">
+                <td data-testid="ticket-order-id-{{ o.id }}">#{{ o.id }}</td>
+                <td data-testid="ticket-event-title-{{ o.id }}">{{ o.event_title }}</td>
+                <td data-testid="ticket-qty-{{ o.id }}">{{ o.qty }}</td>
+                <td data-testid="ticket-total-{{ o.id }}">${{ '%.2f'|format(o.total) }}</td>
+                <td data-testid="ticket-status-{{ o.id }}">{{ o.status }}</td>
+                <td data-testid="ticket-date-{{ o.id }}">{{ o.created_at }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="muted" data-testid="empty-tickets-message">
+          No purchases yet. Browse events and complete your first checkout.
+        </div>
+      {% endif %}
+    </div>
+  </div>
 </section>
 {% endblock %}

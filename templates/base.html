@@ -7,69 +7,102 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 
-<body>
+<body data-testid="app-body">
 {% block header %}
-<header class="topbar">
-  <div class="container topbar-inner">
-    <a class="brand" href="{{ url_for('index') }}">
-      <span class="brand-badge">EH</span>
-      <span class="brand-name">EventHub</span>
+<header class="topbar" data-testid="topbar">
+  <div class="container topbar-inner" data-testid="topbar-inner">
+    <a class="brand" href="{{ url_for('index') }}" data-testid="nav-brand">
+      <span class="brand-badge" data-testid="nav-brand-badge">EH</span>
+      <span class="brand-name" data-testid="nav-brand-name">EventHub</span>
     </a>
 
-    <nav class="navlinks">
-      <a href="{{ url_for('index') }}">Explore</a>
-      <a href="{{ url_for('index', category='Tech') }}">Categories</a>
+    <nav class="navlinks" data-testid="main-nav">
+      <a href="{{ url_for('index') }}" data-testid="nav-explore">Explore</a>
+      <a href="{{ url_for('index', category='Tech') }}" data-testid="nav-categories">Categories</a>
+      {% if is_admin %}
+        <a href="{{ url_for('admin_users') }}" data-testid="nav-admin">Admin Panel</a>
+      {% endif %}
     </nav>
 
-    <div class="top-actions">
-      <form class="mini-search" action="{{ url_for('index') }}" method="get">
-        <input name="q" value="{{ request.args.get('q','') }}" placeholder="Search events..." />
+    <div class="top-actions" data-testid="top-actions">
+      <form class="mini-search"
+            action="{{ url_for('index') }}"
+            method="get"
+            data-testid="nav-search-form">
+        <input
+          name="q"
+          value="{{ request.args.get('q','') }}"
+          placeholder="Search events..."
+          data-testid="nav-search-input"
+        />
       </form>
 
-      {% if session.get("user_email") %}
-        <a class="btn btn-ghost" href="{{ url_for('profile') }}">My Profile</a>
+      {% if is_authenticated %}
+        <a class="btn btn-ghost"
+           href="{{ url_for('dashboard') }}"
+           data-testid="nav-dashboard">
+          Dashboard
+        </a>
+        <a class="btn btn-ghost"
+           href="{{ url_for('profile') }}"
+           data-testid="nav-profile">
+          My Profile
+        </a>
+        <a class="btn btn-primary"
+           href="{{ url_for('logout') }}"
+           data-testid="nav-logout">
+          Logout
+        </a>
       {% else %}
-        <a class="btn btn-ghost" href="{{ url_for('login') }}">Login</a>
-        <a class="btn btn-primary" href="{{ url_for('register') }}">Register</a>
+        <a class="btn btn-ghost"
+           href="{{ url_for('login') }}"
+           data-testid="nav-login">
+          Login
+        </a>
+        <a class="btn btn-primary"
+           href="{{ url_for('register') }}"
+           data-testid="nav-register">
+          Register
+        </a>
       {% endif %}
     </div>
   </div>
 </header>
 {% endblock %}
 
-  <main>
+  <main data-testid="main-content">
     {% block content %}{% endblock %}
   </main>
 
-  <footer class="footer">
-    <div class="container footer-grid">
-      <div>
-        <div class="brand footer-brand">
-          <span class="brand-badge">EH</span>
-          <span class="brand-name">EventHub</span>
+  <footer class="footer" data-testid="footer">
+    <div class="container footer-grid" data-testid="footer-grid">
+      <div data-testid="footer-brand-block">
+        <div class="brand footer-brand" data-testid="footer-brand">
+          <span class="brand-badge" data-testid="footer-brand-badge">EH</span>
+          <span class="brand-name" data-testid="footer-brand-name">EventHub</span>
         </div>
-        <p class="muted">Discover and experience the best events near you.</p>
+        <p class="muted" data-testid="footer-description">Discover and experience the best events near you.</p>
       </div>
 
-      <div>
-        <h4>Quick Links</h4>
-        <a href="#" class="footer-link">About Us</a>
-        <a href="#" class="footer-link">Contact</a>
-        <a href="#" class="footer-link">Blog</a>
-        <a href="#" class="footer-link">FAQs</a>
+      <div data-testid="footer-links-block">
+        <h4 data-testid="footer-links-title">Quick Links</h4>
+        <a href="#" class="footer-link" data-testid="footer-link-about">About Us</a>
+        <a href="#" class="footer-link" data-testid="footer-link-contact">Contact</a>
+        <a href="#" class="footer-link" data-testid="footer-link-blog">Blog</a>
+        <a href="#" class="footer-link" data-testid="footer-link-faq">FAQs</a>
       </div>
 
-      <div>
-        <h4>Categories</h4>
-        <a href="{{ url_for('index', category='Music') }}" class="footer-link">Music</a>
-        <a href="{{ url_for('index', category='Tech') }}" class="footer-link">Tech</a>
-        <a href="{{ url_for('index', category='Sports') }}" class="footer-link">Sports</a>
-        <a href="{{ url_for('index', category='Business') }}" class="footer-link">Business</a>
+      <div data-testid="footer-categories-block">
+        <h4 data-testid="footer-categories-title">Categories</h4>
+        <a href="{{ url_for('index', category='Music') }}" class="footer-link" data-testid="footer-category-music">Music</a>
+        <a href="{{ url_for('index', category='Tech') }}" class="footer-link" data-testid="footer-category-tech">Tech</a>
+        <a href="{{ url_for('index', category='Sports') }}" class="footer-link" data-testid="footer-category-sports">Sports</a>
+        <a href="{{ url_for('index', category='Business') }}" class="footer-link" data-testid="footer-category-business">Business</a>
       </div>
 
-      <div>
-        <h4>Connect With Us</h4>
-        <p class="muted">Social icons placeholders</p>
+      <div data-testid="footer-social-block">
+        <h4 data-testid="footer-social-title">Connect With Us</h4>
+        <p class="muted" data-testid="footer-social-placeholder">Social icons placeholders</p>
       </div>
     </div>
   </footer>

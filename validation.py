@@ -1,19 +1,3 @@
-"""
-payment_validation.py
-
-Skeleton file for input validation exercise.
-You must implement each validation function according to the
-specification provided in the docstrings.
-
-All validation functions must return:
-
-    (clean_value, error_message)
-
-Where:
-    clean_value: normalized/validated value (or empty string if invalid)
-    error_message: empty string if valid, otherwise error description
-"""
-
 import re
 import unicodedata
 from datetime import datetime
@@ -25,7 +9,13 @@ CVV_RE = re.compile(r"^\d{3,4}$")      #3 or 4 digits
 EXP_RE = re.compile(r"^(0[1-9]|1[0-2])\/\d{2}$")   #MM/YY format
 EMAIL_BASIC_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")    # basic email structure
 NAME_ALLOWED_RE = re.compile(r"^[A-Za-zÀ-ÖØ-öø-ÿ' -]+$")   # allowed name characters
+from typing import Dict, Tuple
 
+CARD_DIGITS_RE = re.compile(r"^\d+$")
+CVV_RE = re.compile(r"^\d{3,4}$")
+EXP_RE = re.compile(r"^(0[1-9]|1[0-2])\/(\d{2})$")
+EMAIL_BASIC_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+NAME_ALLOWED_RE = re.compile(r"^[A-Za-zÀ-ÖØ-öø-ÿ' -]+$")
 
 def normalize_basic(value: str) -> str:
     """
@@ -147,10 +137,10 @@ def validate_payment_form(
     clean = {}
     errors = {}
 
-    card, err = validate_card_number(card_number)
+    last4, err = validate_card_number(card_number)
     if err:
         errors["card_number"] = err
-    clean["card"] = card
+    clean["card_last4"] = last4
 
     exp_clean, err = validate_exp_date(exp_date)
     if err:

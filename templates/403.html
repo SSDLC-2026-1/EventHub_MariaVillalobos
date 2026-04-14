@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% set title = "403 - Access Denied" %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='forbidden.css') }}">
+
+<section class="section" data-testid="forbidden-page">
+  <div class="container forbidden-wrap">
+
+    <div class="crumbs muted small">
+      <span class="crumb-icon">⌂</span>
+      <a class="crumb-link" href="{{ url_for('index') }}">Home</a>
+      <span class="crumb-sep">›</span>
+      <span class="crumb-current">Access Error</span>
+    </div>
+
+    <div class="forbidden-card">
+      <div class="forbidden-icon">
+        <div class="icon-bubble">🛡️</div>
+        <span class="icon-dot" aria-hidden="true"></span>
+      </div>
+
+      <div class="forbidden-kicker">ERROR 403</div>
+      <h1 class="forbidden-title" data-testid="forbidden-title">Access Denied</h1>
+
+      <p class="forbidden-desc">
+        You don't have permission to access this page.<br>
+        This area is restricted to administrators or requires<br>
+        elevated security clearance.
+      </p>
+
+      <p class="forbidden-note">
+        <em>If you believe this is an error, please contact your workspace administrator or request access.</em>
+      </p>
+
+      <div class="forbidden-actions">
+        <a class="btn btn-primary" href="{{ url_for('dashboard') }}">
+          <span class="btn-ico">⎈</span>
+          Go to Dashboard
+        </a>
+        <button class="btn btn-ghost" type="button" onclick="history.back()">
+          <span class="btn-ico">←</span>
+          Go Back
+        </button>
+      </div>
+
+      <a class="forbidden-support muted small" href="#">
+        ⓘ Contact Support ↗
+      </a>
+
+      <div class="forbidden-meta">
+        <div class="meta-box">
+          <div class="meta-label">TECHNICAL DETAILS</div>
+          <div class="meta-row">
+            <span class="meta-key">Error Code</span>
+            <span class="meta-val">ERR_403_FORBIDDEN</span>
+          </div>
+        </div>
+
+        <div class="meta-box meta-verified">
+          <div class="meta-label">✅ SYSTEM VERIFIED</div>
+          <div class="meta-row">
+            <span class="meta-key">Request ID</span>
+            <span class="meta-val">{{ request_id or "REQ-772-XP-09" }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="forbidden-footer muted small center">
+        Looking for something else? Try searching our <span class="linkish">Knowledge Base</span>
+        or visit the <span class="linkish">Community Forum</span>.
+      </div>
+    </div>
+
+  </div>
+</section>
+{% endblock %}

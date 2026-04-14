@@ -1,26 +1,7 @@
 [
   {
     "id": 1,
-    "user_email": "PLACEHOLDER@EMAIL.COM",
-    "event_id": 6,
-    "event_title": "Rock Legends Live",
-    "qty": 1,
-    "unit_price": 95.0,
-    "service_fee": 5.0,
-    "total": 100.0,
-    "status": "PAID",
-    "created_at": "2026-02-11T21:26:54.969744",
-    "payment": {
-      "card_number": "000000000000000000000",
-      "exp_date": "09/23",
-      "cvv": "123",
-      "name_on_card": "pepito",
-      "billing_email": "test@tes.com"
-    }
-  },
-  {
-    "id": 2,
-    "user_email": "PLACEHOLDER@EMAIL.COM",
+    "user_email": "test3@tes.com",
     "event_id": 1,
     "event_title": "Summer Music Fest",
     "qty": 1,
@@ -28,12 +9,126 @@
     "service_fee": 5.0,
     "total": 80.0,
     "status": "PAID",
-    "created_at": "2026-02-17T22:13:05.445736",
+    "created_at": "2026-03-16T18:41:34.939432",
     "payment": {
       "exp_date": "12/29",
       "name_on_card": "Juan Perez",
-      "billing_email": "ohn.doe@example.com",
-      "card": ""
+      "billing_email_encrypted": {
+        "ciphertext": "0a806edc8d83fd5d7380c71962d808a4f0fd30d5",
+        "nonce": "8912961a378f18455c6ff7cb9e9e831d",
+        "tag": "4156c15261f5212f469ab12218223b2c"
+      },
+      "card_masked": "**** **** **** 1111"
+    }
+  },
+  {
+    "id": 2,
+    "user_email": "lab1@test.com",
+    "event_id": 8,
+    "event_title": "International Food Festival",
+    "qty": 3,
+    "unit_price": 30.0,
+    "service_fee": 5.0,
+    "total": 95.0,
+    "status": "PAID",
+    "created_at": "2026-03-16T19:39:23.997738",
+    "payment": {
+      "exp_date": "09/31",
+      "name_on_card": "Juan David Perez",
+      "billing_email_encrypted": {
+        "ciphertext": "712fe853f67a41bfe259835e731caea3386c223a",
+        "nonce": "cc50a06f8162f5ae425c9c62e35f5f94",
+        "tag": "d600f74316dab1e8d18b982c86360cac"
+      },
+      "card_masked": "**** **** **** 1111"
+    }
+  },
+  {
+    "id": 3,
+    "user_email": "lab1@test.com",
+    "event_id": 1,
+    "event_title": "Summer Music Fest",
+    "qty": 2,
+    "unit_price": 75.0,
+    "service_fee": 5.0,
+    "total": 155.0,
+    "status": "PAID",
+    "created_at": "2026-03-16T19:41:03.076239",
+    "payment": {
+      "exp_date": "12/31",
+      "name_on_card": "Juan David Perez",
+      "billing_email_encrypted": {
+        "ciphertext": "b7975bca902f09e1f20a7069c92277279d596ec3",
+        "nonce": "92940fdd17fa24d5a150c1a8d62cef53",
+        "tag": "f085a82cd6ac8839f3a39de1ec1e9381"
+      },
+      "card_masked": "**** **** **** 1111"
+    }
+  },
+  {
+    "id": 4,
+    "user_email": "sofia.doe@gmail.com",
+    "event_id": 6,
+    "event_title": "Rock Legends Live",
+    "qty": 3,
+    "unit_price": 95.0,
+    "service_fee": 5.0,
+    "total": 290.0,
+    "status": "PAID",
+    "created_at": "2026-03-16T19:42:49.185868",
+    "payment": {
+      "exp_date": "12/31",
+      "name_on_card": "Sofia Doe",
+      "billing_email_encrypted": {
+        "ciphertext": "4be841c4189da7618cc747e11e2eeda41c3055",
+        "nonce": "1b59e07a86899fdaa18151aaf7a0d431",
+        "tag": "8dc282cc041c13a7b1a9b810862e9766"
+      },
+      "card_masked": "**** **** **** 1111"
+    }
+  },
+  {
+    "id": 5,
+    "user_email": "sofia.doe@gmail.com",
+    "event_id": 1,
+    "event_title": "Summer Music Fest",
+    "qty": 1,
+    "unit_price": 75.0,
+    "service_fee": 5.0,
+    "total": 80.0,
+    "status": "PAID",
+    "created_at": "2026-03-17T02:53:04.782866",
+    "payment": {
+      "exp_date": "12/31",
+      "name_on_card": "Juan David Perez",
+      "billing_email_encrypted": {
+        "ciphertext": "bc6d5c28bffd0b050539d6fe4be1bc02c3fd3b",
+        "nonce": "3bdec013a676fe9ea8c4b844dca794eb",
+        "tag": "474f1acfa925399bdfc5ef3ec3eff18b"
+      },
+      "card_masked": "**** **** **** 1111"
+    }
+  },
+  {
+    "id": 6,
+    "user_email": "noadmin@eventhub.com",
+    "event_id": 1,
+    "event_title": "Summer Music Fest",
+    "qty": 1,
+    "unit_price": 75.0,
+    "service_fee": 5.0,
+    "total": 80.0,
+    "status": "PAID",
+    "created_at": "2026-03-17T14:14:14.293713",
+    "payment": {
+      "exp_date": "12/30",
+      "name_on_card": "Ana Gomez",
+      "billing_email_encrypted": {
+        "ciphertext": "d72f98bbd14440e321122b38abc47f7fc6364ff7",
+        "nonce": "8dd16499479547459884816a33213eb2",
+        "tag": "e25dbd8a88d7fdb97750297a5130428d"
+      },
+      "card_masked": "**** **** **** 1111"
     }
   }
 ]

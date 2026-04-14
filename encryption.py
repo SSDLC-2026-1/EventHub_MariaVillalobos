@@ -15,9 +15,14 @@ NO modificar la función encrypt_aes().
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 import hashlib
-import os
 import hmac
 
+import secrets
+import base64
+import hashlib
+# ==========================================================
+# AES-GCM (requiere pip install pycryptodome)
+# ==========================================================
 
 def encrypt_aes(texto, clave):
     """
@@ -71,30 +76,27 @@ def decrypt_aes(texto_cifrado_hex, nonce_hex, tag_hex, clave):
 
     # TODO: Convertir resultado a string y retornar
     return texto_descifrado_bytes.decode('utf-8')
+def decrypt_aes(texto_cifrado_str, nonce_hex, tag_hex, clave):
+    texto_cifrado = bytes.fromhex(texto_cifrado_str)
+    nonce = bytes.fromhex(nonce_hex)
+    tag = bytes.fromhex(tag_hex)
+
+    cipher = AES.new(clave, AES.MODE_EAX, nonce=nonce)
+
+    texto_descifrado = cipher.decrypt_and_verify(texto_cifrado, tag)
+
+    return texto_descifrado.decode()
+
+# ==========================================================
+# PASSWORD HASHING (PBKDF2 - SHA256)
+# ==========================================================
 
 
-def hash_password(password):
-    """
-    Genera un hash seguro usando:
+DEFAULT_ITERATIONS = 310_000
+SALT_BYTES = 16
 
-        PBKDF2-HMAC-SHA256
 
-    Requisitos:
-
-    - Generar salt aleatoria de 16 bytes.
-    - Usar al menos 200000 iteraciones.
-    - Derivar clave de 32 bytes.
-    - Retornar un diccionario con:
-
-        {
-            "algorithm": "pbkdf2_sha256",
-            "iterations": ...,
-            "salt": salt_en_hex,
-            "hash": hash_en_hex
-        }
-
-    Pista:
-        hashlib.pbkdf2_hmac(...)
+def hash_password(password: str) -> dict:
     """
 
     # TODO: Generar salt aleatoria
@@ -119,26 +121,42 @@ def hash_password(password):
 
 
 def verify_password(password, stored_data):
+    Genera un hash seguro usando PBKDF2-HMAC-SHA256.
+    Retorna un diccionario listo para guardar en JSON.
     """
-    Verifica una contraseña contra el hash almacenado.
+    salt = secrets.token_bytes(SALT_BYTES)
 
-    Debes:
+    derived_key = hashlib.pbkdf2_hmac(
+        "sha256",
+        password.encode("utf-8"),
+        salt,
+        DEFAULT_ITERATIONS,
+        dklen=32
+    )
 
-    1. Extraer salt y iterations del diccionario.
-    2. Convertir salt de hex a bytes.
-    3. Recalcular el hash con la contraseña ingresada.
-    4. Comparar usando hmac.compare_digest().
-    5. Retornar True o False.
+    return {
+        "algorithm": "pbkdf2_sha256",
+        "iterations": DEFAULT_ITERATIONS,
+        "salt": base64.b64encode(salt).decode("ascii"),
+        "hash": base64.b64encode(derived_key).decode("ascii")
+    }
 
-    stored_data tiene esta estructura:
 
-        {
-            "algorithm": "...",
-            "iterations": ...,
-            "salt": "...",
-            "hash": "..."
-        }
+def verify_password(password: str, stored: dict) -> bool:
     """
+    Verifica si una contraseña coincide con el hash almacenado.
+    Usa comparación constante.
+    """
+    salt = base64.b64decode(stored["salt"])
+    expected_hash = base64.b64decode(stored["hash"])
+
+    derived_key = hashlib.pbkdf2_hmac(
+        "sha256",
+        password.encode("utf-8"),
+        salt,
+        int(stored["iterations"]),
+        dklen=len(expected_hash)
+    )
 
     # TODO: Extraer salt e iterations
     salt_hex = stored_data.get("salt")
@@ -165,6 +183,7 @@ def verify_password(password, stored_data):
     
     # TODO: Comparar con compare_digest
     return hmac.compare_digest(recalculated_key, original_hash_bytes)
+    return hmac.compare_digest(derived_key, expected_hash)
 
 
 
@@ -176,7 +195,7 @@ if __name__ == "__main__":
     clave = get_random_bytes(16)
 
     texto_cifrado, nonce, tag = encrypt_aes(texto, clave)
-
+    print("Texto plano: ", texto)
     print("Texto cifrado:", texto_cifrado)
     print("Nonce:", nonce)
     print("Tag:", tag)
@@ -199,3 +218,4 @@ if __name__ == "__main__":
           verify_password("Password123!", pwd_data))
     print("Verificación incorrecta:",
           verify_password("WrongPassword", pwd_data))
+          verify_password("Password123!", pwd_data))

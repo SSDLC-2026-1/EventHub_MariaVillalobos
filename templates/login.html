@@ -4,8 +4,8 @@
 {% block header %}{% endblock %}
 
 {% block content %}
-<section class="auth-page">
-  <div class="auth-card">
+<section class="auth-page" data-testid="login-page">
+  <div class="auth-card" data-testid="login-card">
     <div class="auth-brand">
       <div class="auth-logo">EH</div>
       <div class="auth-appname">EventHub</div>
@@ -17,20 +17,20 @@
     </div>
 
     {% if error %}
-    <div class="auth-banner auth-banner-error">
+    <div class="auth-banner auth-banner-error" data-testid="login-error-banner">
         <strong>{{ error }}</strong> Please check your email and password.
     </div>
     {% endif %}
 
     {% if info_message %}
-    <div class="auth-banner auth-banner-ok">{{ info_message }}</div>
+    <div class="auth-banner auth-banner-ok" data-testid="login-info-banner">{{ info_message }}</div>
     {% endif %}
 
-    <form class="auth-form" method="post" action="{{ url_for('login') }}">
+    <form class="auth-form" method="post" action="{{ url_for('login') }}" data-testid="login-form">
         <label class="auth-label" for="email">Email address</label>
         <div class="auth-input">
         <span class="auth-icon">✉️</span>
-        <input id="email" name="email" type="email"
+        <input id="email" name="email" type="email" data-testid="login-email"
                 value="{{ (form.email if form else '') }}"
                 placeholder="you@example.com" />
         </div>
@@ -38,10 +38,10 @@
         <div class="auth-help auth-help-error">{{ field_errors.get('email') }}</div>
         {% endif %}
 
-        <label class="auth-label" for="password">Password</label>
+        <label class="auth-label" for="password" ">Password</label>
         <div class="auth-input">
         <span class="auth-icon">🔒</span>
-        <input id="password" name="password" type="password" placeholder="••••••••" />
+        <input id="password" name="password" type="password" placeholder="••••••••" data-testid="login-password"/>
         <span class="auth-eye">👁️</span>
         </div>
 
@@ -53,12 +53,12 @@
         <a class="auth-link" href="#">Forgot password?</a>
       </div>
 
-      <button class="btn btn-primary btn-full" type="submit">Sign In</button>
+      <button class="btn btn-primary btn-full" type="submit" data-testid="login-submit">Sign In</button>
 
       <div class="auth-bottom">
         <div class="muted">
           Don’t have an account?
-          <a class="auth-link" href="{{ url_for('register') }}">Create one</a>
+          <a class="auth-link" href="{{ url_for('register') }}" data-testid="go-to-register">Create one</a>
         </div>
 
         <div class="auth-legal muted small">

@@ -7,6 +7,8 @@ El objetivo de esta sección es evaluar la comprensión precisa de los conceptos
 
 1. **¿Cuál de los siguientes no es un tipo de autorización?**
    - [X] a) Managed Access Control  
+1. **¿Qué tipo de requisito especifica cómo debe comportarse la aplicación?**
+   - [ ] a) Managed Access Control  
    - [ ] b) Mandatory Access Control  
    - [ ] c) Discretionary Access Control  
    - [ ] d) Role Based Access Control  

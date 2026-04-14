@@ -2,84 +2,106 @@
 {% set title = event.title ~ " - EventHub" %}
 
 {% block content %}
-<section class="section">
-  <div class="container">
-    <div class="event-layout">
-      <div class="event-main">
-        <h1 class="event-title">{{ event.title }}</h1>
+<section class="section" data-testid="event-detail-page">
+  <div class="container" data-testid="event-detail-container">
+    <div class="event-layout" data-testid="event-layout">
+      <div class="event-main" data-testid="event-main">
+        <h1 class="event-title" data-testid="event-title">{{ event.title }}</h1>
 
-        <div class="event-meta muted">
-          <div>🗓 {{ event.start.strftime("%B %d, %Y • %I:%M %p") }} - {{ event.end.strftime("%I:%M %p") }}</div>
-          <div>📍 {{ event.venue }}, {{ event.city }}</div>
-          <div>🏷 {{ event.category }}</div>
+        <div class="event-meta muted" data-testid="event-meta">
+          <div data-testid="event-datetime">🗓 {{ event.start.strftime("%B %d, %Y • %I:%M %p") }} - {{ event.end.strftime("%I:%M %p") }}</div>
+          <div data-testid="event-location">📍 {{ event.venue }}, {{ event.city }}</div>
+          <div data-testid="event-category">🏷 {{ event.category }}</div>
         </div>
 
-        <div class="event-desc">
-          <h3>Event Description</h3>
-          <p>{{ event.description }}</p>
+        <div class="event-desc" data-testid="event-description-section">
+          <h3 data-testid="event-description-title">Event Description</h3>
+          <p data-testid="event-description">{{ event.description }}</p>
         </div>
 
-        <div class="panel">
-          <h3>Event Location</h3>
-          <img class="wide-img" src="{{ event.banner_url }}" alt="Location placeholder">
-          <p class="muted small">Exact location details will be provided upon ticket purchase.</p>
+        <div class="panel" data-testid="event-location-panel">
+          <h3 data-testid="event-location-title">Event Location</h3>
+          <img class="wide-img"
+               src="{{ event.banner_url }}"
+               alt="Location placeholder"
+               data-testid="event-location-image">
+          <p class="muted small" data-testid="event-location-note">Exact location details will be provided upon ticket purchase.</p>
         </div>
 
-        <div class="panel">
-          <h3>Frequently Asked Questions</h3>
+        <div class="panel" data-testid="event-faq-panel">
+          <h3 data-testid="event-faq-title">Frequently Asked Questions</h3>
 
-          <details class="faq">
-            <summary>Is there an age restriction for attendees?</summary>
-            <p class="muted">Example answer placeholder.</p>
+          <details class="faq" data-testid="faq-item-1">
+            <summary data-testid="faq-question-1">Is there an age restriction for attendees?</summary>
+            <p class="muted" data-testid="faq-answer-1">Example answer placeholder.</p>
           </details>
-          <details class="faq">
-            <summary>Can I get a refund if I can't attend?</summary>
-            <p class="muted">Example answer placeholder.</p>
+          <details class="faq" data-testid="faq-item-2">
+            <summary data-testid="faq-question-2">Can I get a refund if I can't attend?</summary>
+            <p class="muted" data-testid="faq-answer-2">Example answer placeholder.</p>
           </details>
         </div>
       </div>
 
-      <aside class="buy-card">
-        <div class="card card-tight">
-          <div class="buy-top">
-            <div class="muted small">Tickets from</div>
-            <div class="buy-price">${{ "%.2f"|format(event.price_usd) }}</div>
+      <aside class="buy-card" data-testid="buy-card">
+        <div class="card card-tight" data-testid="buy-card-inner">
+          <div class="buy-top" data-testid="buy-top">
+            <div class="muted small" data-testid="buy-top-label">Tickets from</div>
+            <div class="buy-price" data-testid="event-price">${{ "%.2f"|format(event.price_usd) }}</div>
           </div>
 
-          <form action="{{ url_for('buy_ticket', event_id=event.id) }}" method="post">
-            <label class="label">Quantity</label>
-            <input class="qty" type="number" min="1" max="8" name="qty" value="1">
-            <div class="muted small">{{ event.available_tickets }} tickets available</div>
+          <form action="{{ url_for('buy_ticket', event_id=event.id) }}"
+                method="post"
+                data-testid="buy-ticket-form">
+            <label class="label" data-testid="ticket-qty-label">Quantity</label>
+            <input class="qty"
+                   type="number"
+                   min="1"
+                   max="8"
+                   name="qty"
+                   value="1"
+                   data-testid="ticket-qty">
+            <div class="muted small" data-testid="tickets-available">{{ event.available_tickets }} tickets available</div>
 
-            <button class="btn btn-primary btn-full" type="submit">Buy Ticket</button>
-            <div class="muted small center">🔒 Secure checkout</div>
+            <button class="btn btn-primary btn-full"
+                    type="submit"
+                    data-testid="buy-ticket-submit">
+              Buy Ticket
+            </button>
+            <div class="muted small center" data-testid="secure-checkout-note">🔒 Secure checkout</div>
 
             {% if buy_error %}
-              <div class="alert alert-error">{{ buy_error }}</div>
+              <div class="alert alert-error" data-testid="buy-ticket-error">{{ buy_error }}</div>
             {% endif %}
             {% if buy_success %}
-              <div class="alert alert-ok">{{ buy_success }}</div>
+              <div class="alert alert-ok" data-testid="buy-ticket-success">{{ buy_success }}</div>
             {% endif %}
           </form>
         </div>
       </aside>
     </div>
 
-    <div class="section">
-      <h2 class="section-title">Similar Events</h2>
-      <div class="grid cards-5">
+    <div class="section" data-testid="similar-events-section">
+      <h2 class="section-title" data-testid="similar-events-title">Similar Events</h2>
+      <div class="grid cards-5" data-testid="similar-events-grid">
         {% for e in similar %}
-          <article class="card small-card">
-            <img class="card-img" src="{{ e.banner_url }}" alt="Event banner">
-            <div class="card-body">
-              <h3 class="card-title small">{{ e.title }}</h3>
-              <div class="card-meta small">
-                <div>{{ e.start.strftime("%b %d, %Y") }}</div>
-                <div>{{ e.city }}</div>
+          <article class="card small-card" data-testid="similar-event-card-{{ e.id }}">
+            <img class="card-img"
+                 src="{{ e.banner_url }}"
+                 alt="Event banner"
+                 data-testid="similar-event-image-{{ e.id }}">
+            <div class="card-body" data-testid="similar-event-body-{{ e.id }}">
+              <h3 class="card-title small" data-testid="similar-event-title-{{ e.id }}">{{ e.title }}</h3>
+              <div class="card-meta small" data-testid="similar-event-meta-{{ e.id }}">
+                <div data-testid="similar-event-date-{{ e.id }}">{{ e.start.strftime("%b %d, %Y") }}</div>
+                <div data-testid="similar-event-city-{{ e.id }}">{{ e.city }}</div>
               </div>
-              <div class="card-row">
-                <span class="price">${{ "%.2f"|format(e.price_usd) }}</span>
-                <a class="btn btn-ghost" href="{{ url_for('event_detail', event_id=e.id) }}">View</a>
+              <div class="card-row" data-testid="similar-event-actions-{{ e.id }}">
+                <span class="price" data-testid="similar-event-price-{{ e.id }}">${{ "%.2f"|format(e.price_usd) }}</span>
+                <a class="btn btn-ghost"
+                   href="{{ url_for('event_detail', event_id=e.id) }}"
+                   data-testid="similar-event-view-{{ e.id }}">
+                  View
+                </a>
               </div>
             </div>
           </article>

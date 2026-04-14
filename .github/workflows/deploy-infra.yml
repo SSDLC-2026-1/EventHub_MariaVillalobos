@@ -1,0 +1,242 @@
+name: Deploy EventHub Infrastructure and App
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: us-east-1
+      TF_IN_AUTOMATION: true
+      BOOTSTRAP_DIR: ./Infra/bootstrap
+      TF_DIR: ./Infra/terraform
+      TF_STATE_KEY: eventhub/terraform.tfstate
+      TF_STATE_BUCKET: eventhub-terraform-state-sara-palacios-2026
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Check if state bucket exists
+        id: check_bucket
+        run: |
+            if aws s3api head-bucket --bucket "eventhub-terraform-state-sara-palacios-2026" 2>/dev/null; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            fi
+
+      - name: Ensure SSH key pair exists in AWS Secrets Manager
+        run: |
+          PRIVATE_SECRET_NAME="eventhub/ssh/private-key"
+          PUBLIC_SECRET_NAME="eventhub/ssh/public-key"
+
+          PRIVATE_EXISTS=true
+          PUBLIC_EXISTS=true
+
+          aws secretsmanager describe-secret --secret-id "$PRIVATE_SECRET_NAME" --region $AWS_REGION >/dev/null 2>&1 || PRIVATE_EXISTS=false
+          aws secretsmanager describe-secret --secret-id "$PUBLIC_SECRET_NAME" --region $AWS_REGION >/dev/null 2>&1 || PUBLIC_EXISTS=false
+
+          if [ "$PRIVATE_EXISTS" = false ] || [ "$PUBLIC_EXISTS" = false ]; then
+            echo "SSH secrets not found. Generating new key pair..."
+
+            ssh-keygen -t rsa -b 4096 -f eventhub_key -N ""
+
+            PRIVATE_KEY_CONTENT=$(cat eventhub_key)
+            PUBLIC_KEY_CONTENT=$(cat eventhub_key.pub)
+
+            aws secretsmanager create-secret \
+              --name "$PRIVATE_SECRET_NAME" \
+              --secret-string "$PRIVATE_KEY_CONTENT" \
+              --region $AWS_REGION \
+              >/dev/null 2>&1 || \
+
+            aws secretsmanager update-secret \
+              --secret-id "$PRIVATE_SECRET_NAME" \
+              --region $AWS_REGION \
+              --secret-string "$PRIVATE_KEY_CONTENT"
+
+            aws secretsmanager create-secret \
+              --name "$PUBLIC_SECRET_NAME" \
+              --secret-string "$PUBLIC_KEY_CONTENT" \
+              --region $AWS_REGION \
+              >/dev/null 2>&1 || \
+
+            aws secretsmanager update-secret \
+              --secret-id "$PUBLIC_SECRET_NAME" \
+              --region $AWS_REGION \
+              --secret-string "$PUBLIC_KEY_CONTENT"
+          else
+            echo "SSH secrets already exist in Secrets Manager"
+          fi
+
+      - name: Retrieve SSH keys from AWS Secrets Manager
+        run: |
+          aws secretsmanager get-secret-value \
+            --secret-id eventhub/ssh/private-key \
+            --query SecretString \
+            --region $AWS_REGION \
+            --output text > eventhub_key
+
+          chmod 600 eventhub_key
+
+          echo "PUBLIC_KEY<<EOF" >> $GITHUB_ENV
+          aws secretsmanager get-secret-value \
+            --secret-id eventhub/ssh/public-key \
+            --query SecretString \
+            --region $AWS_REGION \
+            --output text >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Terraform Init (bootstrap)
+        if: steps.check_bucket.outputs.exists == 'false'
+        working-directory: ${{ env.BOOTSTRAP_DIR }}
+        run: terraform init
+
+      - name: Terraform Validate (bootstrap)
+        if: steps.check_bucket.outputs.exists == 'false'
+        working-directory: ${{ env.BOOTSTRAP_DIR }}
+        run: terraform validate
+
+      - name: Terraform Plan (bootstrap)
+        if: steps.check_bucket.outputs.exists == 'false'
+        working-directory: ${{ env.BOOTSTRAP_DIR }}
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply (bootstrap)
+        if: steps.check_bucket.outputs.exists == 'false'    
+        working-directory: ${{ env.BOOTSTRAP_DIR }}
+        run: terraform apply -auto-approve tfplan
+
+      - name: Generate backend config
+        run: |
+          cat > $TF_DIR/backend.hcl <<EOF
+          bucket       = "${TF_STATE_BUCKET}"
+          key          = "${TF_STATE_KEY}"
+          region       = "${AWS_REGION}"
+          use_lockfile = true
+          EOF
+
+      - name: Terraform Init (main)
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform init -reconfigure -backend-config=backend.hcl
+
+      - name: Terraform Validate (main)
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform validate
+
+      - name: Terraform Plan (main)
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform plan -var="public_key=${PUBLIC_KEY}" -out=tfplan
+
+      - name: Terraform Apply (main)
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform apply -auto-approve tfplan
+
+      - name: Capture Terraform outputs
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          echo "INSTANCE_ID=$(terraform output -raw instance_id)" >> $GITHUB_ENV
+          echo "PUBLIC_IP=$(terraform output -raw public_ip)" >> $GITHUB_ENV
+          echo "APPLICATION_URL=$(terraform output -raw application_url)" >> $GITHUB_ENV
+          echo "SSH_USER=$(terraform output -raw ssh_user)" >> $GITHUB_ENV
+
+      - name: Show outputs
+        run: |
+          echo "State bucket: $TF_STATE_BUCKET"
+          echo "Instance ID: $INSTANCE_ID"
+          echo "Public IP: $PUBLIC_IP"
+          echo "Application URL: $APPLICATION_URL"
+          echo "SSH User: $SSH_USER"
+
+      - name: Wait for SSH to become available
+        run: |
+          for i in {1..30}; do
+            if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i eventhub_key ${SSH_USER}@${PUBLIC_IP} "echo SSH ready"; then
+              echo "SSH is ready"
+              exit 0
+            fi
+            echo "Waiting for SSH..."
+            sleep 10
+          done
+          echo "SSH did not become available in time"
+          exit 1
+
+
+      - name: Ensure remote app directory exists
+        run: |
+          ssh -o StrictHostKeyChecking=no -i eventhub_key ${SSH_USER}@${PUBLIC_IP} << 'EOF'
+            sudo mkdir -p /opt/eventhub
+            sudo chown -R ec2-user:ec2-user /opt/eventhub
+          EOF
+      - name: Copy application files to EC2
+        run: |
+            rsync -avz \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude '.terraform' \
+            --exclude '.terraform.lock.hcl' \
+            --exclude 'Infra' \
+            --exclude 'infra' \
+            --exclude 'eventhub_key' \
+            --exclude '*.tfstate' \
+            --exclude '*.tfplan' \
+            -e "ssh -o StrictHostKeyChecking=no -i eventhub_key" \
+            ./ ${SSH_USER}@${PUBLIC_IP}:/opt/eventhub/
+      - name: Install dependencies and start app with Gunicorn
+        run: |
+            ssh -o StrictHostKeyChecking=no -i eventhub_key ${SSH_USER}@${PUBLIC_IP} << 'EOF'
+            cd /opt/eventhub
+            python3 -m pip install --upgrade pip
+            python3 -m pip install flask pycryptodome gunicorn
+
+            pkill -f gunicorn || true
+            nohup gunicorn --bind 0.0.0.0:5000 app:app > app.log 2>&1 &
+            EOF
+
+      - name: Verify app locally on EC2
+        run: |
+            ssh -o StrictHostKeyChecking=no -i eventhub_key ${SSH_USER}@${PUBLIC_IP} << 'EOF'
+            curl -I http://127.0.0.1:5000 || true
+            curl -I http://localhost:5000 || true
+            EOF
+
+      - name: Verify app process
+        run: |
+            ssh -o StrictHostKeyChecking=no -i eventhub_key ${SSH_USER}@${PUBLIC_IP} "ps -ef | grep gunicorn | grep -v grep"
+      
+      - name: Show working directory contents
+        run: |
+            ssh -o StrictHostKeyChecking=no -i eventhub_key ${SSH_USER}@${PUBLIC_IP} "ls -la /opt/eventhub"
+      
+      - name: Save deployment info
+        run: |
+          cat > deployment-info.txt <<EOF
+          Terraform state bucket: $TF_STATE_BUCKET
+          Terraform state key: $TF_STATE_KEY
+          Instance ID: $INSTANCE_ID
+          Public IP: $PUBLIC_IP
+          Application URL: $APPLICATION_URL
+          SSH User: $SSH_USER
+          EOF
+
+      - name: Upload deployment info artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: eventhub-deployment-info
+          path: deployment-info.txt
